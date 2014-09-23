@@ -181,12 +181,14 @@ read_line(char *buf, size_t size)
 	if (buf == NULL || size == 0)
 		return 0;
 
-	for (size--, length = 0; length < size; length++) {
+	for (size--, length = 0; length < size; ) {
 		if ((ch = fgetc(stdin)) == EOF)
 			break;
 		if (ch == '\0')
 			ch = ' ';
-		buf[length] = ch;
+		buf[length++] = ch;
+		if (ch == '\n')
+			break;
 	}
 
 	buf[length] = '\0';
@@ -241,6 +243,8 @@ count(int flags)
 				continue;
 			}
 
+			if (buf[1+span] == '/' && buf[2+span] == '/') 
+				continue;
 			if (buf[1+span] == '/' && buf[2+span] == '*') {
 				/* Strip leading whitespace before comment block. */
 				is_comment = 1;
