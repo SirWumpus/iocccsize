@@ -3,7 +3,7 @@
  *
  * IOCCC Secondary Source Size Rule
  *
- * Public Domain 1992, 2013 by Anthony Howe.  All rights released.
+ * Public Domain 1992, 2014 by Anthony Howe.  All rights released.
  *
  *
  * SYNOPSIS
@@ -46,6 +46,8 @@
 #define FLAG_SILENCE		1
 #define FLAG_KEEP		2
 #define FLAG_RESERVED		4
+
+#define BUFFER_SIZE		512
 
 char usage[] =
 "usage:  ioccc [-krs] < prog.c\n"
@@ -170,6 +172,28 @@ find_member(Word *table, const char *string)
 	return NULL;
 }
 
+size_t
+read_line(char *buf, size_t size)
+{
+	int ch;
+	size_t length;
+
+	if (buf == NULL || size == 0)
+		return 0;
+
+	for (size--, length = 0; length < size; length++) {
+		if ((ch = fgetc(stdin)) == EOF)
+			break;
+		if (ch == '\0')
+			ch = ' ';
+		buf[length] = ch;
+	}
+
+	buf[length] = '\0';
+
+	return length;
+}
+
 /*
  * Count octets and strip comments.  The stripped C input is sent to
  * standard output.  If -s is set, then suppress the source output.
@@ -193,9 +217,9 @@ count(int flags)
 {
 	Word *w;
 	int span;
-	char *p, buf[256];
+	char *p, buf[BUFFER_SIZE];
 	int lcount, wcount, bcount;
-	int is_comment, is_word, dquote;
+	int is_comment, is_word, dquote, escape;
 	int count, keywords, saved, kw_saved;
 
 	/* Start of buffer sentinel. */
@@ -204,16 +228,19 @@ count(int flags)
 	count = saved = 0;
 	keywords = kw_saved = 0;
 	lcount = wcount = bcount = 0;
-	is_comment = is_word = dquote = 0;
+	is_comment = is_word = dquote = escape = 0;
 
-	/*** TODO: Implement a byte stream reader, instead of by lines.
-	 *** Would allow for silly white space (VT, FF) formatting, since
-	 *** gcc ignores VT/FF white space, except on preprocessor lines.
-	 ***/
-	for ( ; fgets(buf+1, sizeof (buf)-1, stdin) != NULL;) {
+	while (0 < read_line(buf+1, sizeof (buf)-1)) {
 		if (!(flags & FLAG_KEEP)) {
 			/* Leading whitespace before comment block? */
 			span = strspn(buf+1, "\t ");
+
+			/* Split / * across reads? */
+			if (buf[1+span] == '/' && buf[2+span] == '\0') {
+				(void) ungetc('/', stdin);
+				continue;
+			}
+
 			if (buf[1+span] == '/' && buf[2+span] == '*') {
 				/* Strip leading whitespace before comment block. */
 				is_comment = 1;
@@ -221,66 +248,103 @@ count(int flags)
 		}
 
 		for (p = buf+1; *p != '\0'; p++) {
-			/* In C comment block? */
-			if (is_comment) {
-				/* End of comment block? */
-				if (*p == '*' && p[1] == '/') {
-					is_comment = 0;
+			/* Within quoted string? */
+			if (dquote) {
+				/* Escape _this_ character. */
+				if (escape)
+					escape = 0;
+
+				/* Escape next character. */
+				else if (*p == '\\')
+					escape = 1;
+
+				/* Close quoted string? */
+				else if (*p == '"')
+					dquote = 0;
+			}
+
+			/* Not quote string. */
+			else {
+				/* In C comment block? */
+				if (is_comment) {
+					/* Split * / across reads? */
+					if (*p == '*' && p[1] == '\0') {
+						ungetc('*', stdin);
+						break;
+					}
+
+					/* End of comment block? */
+					if (*p == '*' && p[1] == '/') {
+						is_comment = 0;
+
+						if (!(flags & FLAG_KEEP)) {
+							/* Strip whitespace and newline
+							 * trailing closing comment.
+							 */
+							p += 1 + strspn(p+2, " \t\r\n");
+						}
+					}
 
 					if (!(flags & FLAG_KEEP)) {
-						/* Strip whitespace and newline
-						 * trailing closing comment.
-						 */
-						p += 1 + strspn(p+2, " \t\r\n");
+						/* Strip octets in comment block. */
+						continue;
 					}
 				}
 
-				if (!(flags & FLAG_KEEP)) {
-					/* Strip octets in comment block. */
-					continue;
+				/* Split / / or / * across reads? */
+				else if (*p == '/' && p[1] == '\0') {
+					ungetc('/', stdin);
+					break;
 				}
-			}
 
-			/* Start of comment block? */
-			else if (!dquote && *p == '/' && p[1] == '*') {
-				/* Begin comment block. */
-				is_comment = 1;
-
-				if (!(flags & FLAG_KEEP)) {
-					/* Strip comment block. */
-					p++;
-					continue;
-				}
-			}
-
-			/* Toggle start/end of double-quote string. */
-			else if (*p == '"' && p[-1] != '\\' && p[-1] != '\'')
-				dquote = !dquote;
-
-			/* C reserved word? */
-			else if (!dquote
-			&& !isalnum(p[-1]) && p[-1] != '_'
-			&& (w = find_member(cwords, p)) != NULL) {
-				keywords++;
-				if (flags & FLAG_RESERVED) {
-					bcount += w->length;
-					if (!is_word) {
-						is_word = 1;
-						wcount++;
+				/* Start of comment line? */
+				else if (*p == '/' && p[1] == '/') {
+					if (!(flags & FLAG_KEEP)) {
+						/* Strip comment to end of buffer. */
+						break;
 					}
+				}
 
-					if (!(flags & FLAG_SILENCE))
-						fputs(w->word, stdout);
+				/* Start of comment block? */
+				else if (*p == '/' && p[1] == '*') {
+					/* Begin comment block. */
+					is_comment = 1;
 
-					/* Count reserved word as one. */
-					kw_saved += w->length - 1;
-					p += w->length - 1;
-					count++;
-					continue;
+					if (!(flags & FLAG_KEEP)) {
+						/* Strip comment block. */
+						p++;
+						continue;
+					}
+				}
+
+				/* C reserved word? */
+				else if (!isalnum(p[-1]) && p[-1] != '_'
+				&& (w = find_member(cwords, p)) != NULL) {
+					keywords++;
+					if (flags & FLAG_RESERVED) {
+						bcount += w->length;
+						if (!is_word) {
+							is_word = 1;
+							wcount++;
+						}
+
+						if (!(flags & FLAG_SILENCE))
+							fputs(w->word, stdout);
+
+						/* Count reserved word as one. */
+						kw_saved += w->length - 1;
+						p += w->length - 1;
+						count++;
+						continue;
+					}
+				}
+
+				/* Open quoted string? */
+				else if (*p == '"') {
+					dquote = 1;
 				}
 			}
 
- 			/* Everything above here is stripped from the input. */
 			if (!(flags & FLAG_SILENCE))
 				fputc(*p, stdout);
 
