@@ -172,6 +172,12 @@ find_member(Word *table, const char *string)
 	return NULL;
 }
 
+/*
+ * ISO C11 section 5.2.1.1 Trigraph Sequences, leadin sequence "??"
+ */
+static char trigraph[] = "=(/)'<!>-";
+static char asciimap[] = "#[\\]^{|}~";
+
 size_t
 read_line(char *buf, size_t size)
 {
@@ -186,6 +192,22 @@ read_line(char *buf, size_t size)
 			break;
 		if (ch == '\0')
 			ch = ' ';
+		/* Trigraph mapping? */
+		if (2 <= length && buf[length-2] == '?' && buf[length-1] == '?') {
+			char *tri;
+			if ((tri = strchr(trigraph, ch)) != NULL) {
+				/* Mapped trigraphs count as 1 byte. */
+				ch = asciimap[tri - trigraph];
+				length -= 2;
+			}
+		}
+		if (ch == '\n' && 1 <= length && buf[length-1] == '\\') {
+			/* ISO C11 section 5.1.1.2 Translation Phases 
+			 * point 2 discards backslash newlines. 
+			 */
+			length--;
+			continue;
+		}
 		buf[length++] = ch;
 		if (ch == '\n')
 			break;
