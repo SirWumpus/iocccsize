@@ -178,6 +178,14 @@ find_member(Word *table, const char *string)
 static char trigraph[] = "=(/)'<!>-";
 static char asciimap[] = "#[\\]^{|}~";
 
+/* 
+ * Keep track of discarded bytes by read_line() so count() can report
+ * correct wc(1) equivalent counts.
+ */
+static unsigned xlcount;
+static unsigned xwcount;
+static unsigned xbcount;
+
 size_t
 read_line(char *buf, size_t size)
 {
@@ -190,14 +198,21 @@ read_line(char *buf, size_t size)
 	for (size--, length = 0; length < size; ) {
 		if ((ch = fgetc(stdin)) == EOF)
 			break;
+		/* Map NUL bytes to space, though ideally I should chuck'em. */
 		if (ch == '\0')
 			ch = ' ';
+		/* Discard bare CR and those part of CRLF. */
+		if (ch == '\r') {
+			xbcount++;
+			continue;
+		}
 		/* Trigraph mapping? */
 		if (2 <= length && buf[length-2] == '?' && buf[length-1] == '?') {
 			char *tri;
 			if ((tri = strchr(trigraph, ch)) != NULL) {
 				/* Mapped trigraphs count as 1 byte. */
 				ch = asciimap[tri - trigraph];
+				xbcount += 2;
 				length -= 2;
 			}
 		}
@@ -205,6 +220,9 @@ read_line(char *buf, size_t size)
 			/* ISO C11 section 5.1.1.2 Translation Phases 
 			 * point 2 discards backslash newlines. 
 			 */
+			xbcount += 2;
+			xwcount++;
+			xlcount++;
 			length--;
 			continue;
 		}
@@ -405,7 +423,7 @@ count(int flags)
 	/* The Ugly Truth */
 	fprintf(
 		stderr, "%d %d %d %d %d %d %d\n",
-		lcount, wcount, bcount, count, saved,
+		lcount + xlcount, wcount + xwcount, bcount + xbcount, count, saved,
 		keywords, kw_saved
 	);
 
