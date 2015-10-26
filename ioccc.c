@@ -8,8 +8,9 @@
  *
  * SYNOPSIS
  *
- * 	ioccc [-krs] < input
+ * 	ioccc [-ikrs] < input
  *
+ *	-i	IOCCC size rule (overall size, modified)
  *	-k	keep comment blocks
  *	-r	count C reserved words as 1 byte
  *	-s	suppress source output, write only the IOCCC 2nd size count
@@ -46,12 +47,15 @@
 #define FLAG_SILENCE		1
 #define FLAG_KEEP		2
 #define FLAG_RESERVED		4
+#define FLAG_IOCCC		8
 
 #define BUFFER_SIZE		512
+#define MAX_SIZE		4096		/* IOCCC Rule 2 */
 
 char usage[] =
-"usage:  ioccc [-krs] < prog.c\n"
+"usage:  ioccc [-ikrs] < prog.c\n"
 "\n"
+"-i\t\tIOCCC size rule (overall size, modified)\n"
 "-k\t\tkeep block comments\n"
 "-r\t\tcount C reserved words as 1 byte\n"
 "-s\t\tsuppress source output, write only the offical size\n"
@@ -250,6 +254,8 @@ read_line(char *buf, size_t size)
  *	wcount	word count (same as wc)
  *	bcount	byte count (same as wc)
  *	icount	IOCCC secondary size rule count
+ *
+ * No longer reported:
  *	isaved	bytes saved by secondary size rule (bcount - icount)
  *	rcount	number of C reserved words
  *	rsaved	number of octets saved with -r
@@ -420,12 +426,18 @@ count(int flags)
 		}
 	}
 
-	/* The Ugly Truth */
-	fprintf(
-		stderr, "%d %d %d %d %d %d %d\n",
-		lcount + xlcount, wcount + xwcount, bcount + xbcount, count, saved,
-		keywords, kw_saved
-	);
+	if (flags & FLAG_IOCCC) {
+		/* Output the official IOCCC size tool size to standard out */
+		printf("%d %d\n", bcount, count);
+		if (MAX_SIZE <= bcount)
+			fprintf(stderr, "WARNING: overall size (%d) exceeds IOCCC max.size (%d)\n", bcount, MAX_SIZE);
+	} else {
+		/* The Ugly Truth */
+		fprintf(
+			stderr, "%d %d %d %d\n",
+			lcount + xlcount, wcount + xwcount, bcount + xbcount, count
+		);
+	}
 
 	return count;
 }
@@ -436,8 +448,11 @@ main(int argc, char **argv)
 	int ch;
 	int flags = 0;
 
-	while ((ch = getopt(argc, argv, "krs")) != -1) {
+	while ((ch = getopt(argc, argv, "ikrs")) != -1) {
 		switch (ch) {
+		case 'i':
+			flags |= FLAG_IOCCC | FLAG_RESERVED | FLAG_SILENCE;
+			break;		
 		case 'k':
 			flags |= FLAG_KEEP;
 			break;
