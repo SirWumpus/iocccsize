@@ -1,10 +1,10 @@
 /*
- * ioccc.c
+ * iocccsize := IOCCC Source Size Tool
  *
- * IOCCC Secondary Source Size Rule
+ * This IOCCC size tool source file is version 2015-10-27-v24.
  *
- * Public Domain 1992, 2014 by Anthony Howe.  All rights released.
- *
+ * Public Domain 1992, 2015 by Anthony Howe.  All rights released.
+ * With IOCCC minor mods in 2013-2015 by chongo (Landon Curt Noll) /\oo/\
  *
  * SYNOPSIS
  *
@@ -38,6 +38,67 @@
  *	count as 1 byte, must be <= 2053 (first prime after 2048).
  */
 
+/*
+ * The official IOCCC rule 2 secondary limit on C code size
+ *
+ * The IOCCC size tool should be compiled as:
+ *
+ *      cc -pedantic -Wall -std=c99 iocccsize.c -o iocccsize
+ *
+ * This tool computes a 2nd size C code.  To check your program source
+ * against the 2nd limit of rule 2, use the -i command line option.
+ *
+ * For example:
+ *
+ *      ./iocccsize -i < prog.c
+ *
+ * The IOCCC size tool, when using the -i option, may be summarized as:
+ *
+ *      The size tool counts C language keywords (primary, secondary, and
+ *      selected preprocessor keywords) as 1.  The size tool counts all
+ *      other octets as 1 excluding ASCII whitespace, and excluding any
+ *      ';', '{' or '}' followed by ASCII whitespace, and excluding any
+ *      ';', '{' or '}' octet immediately before the end of file.
+ *
+ * ASCII whitespace includes ASCII tab, ASCII space, ASCII newline,
+ * ASCII formfeed, and ASCII carriage return.
+ *
+ * In cases where the above summary and the algorithm implemented by
+ * the IOCCC size tool source code conflict, the algorithm implemented
+ * by the IOCCC size tool source code is preferred by the judges.
+ *
+ * See the current IOCCC rules and guidelines for more information.
+ * In particular, see the current IOCCC size rule for information about
+ * the maximum value that this tool should print for an entry to be valid.
+ */
+
+/*
+ * IOCCC Judge's remarks:
+ *
+ * This code contains undocumented features.  On the other hand, this code
+ * is RTFS (for certain values of RTFS). One might say that this code
+ * perfectly documents itself. :-)
+ *
+ * Many thanks to Anthony Howe for taking the time to put his OCD
+ * (Obfuscated Coding Determination) into this code!
+ */
+
+/*
+ * HINT: The algorithm implemented by this code may or not be obfuscated.
+ *       The algorithm may not or may appear to be obfuscated.
+ *
+ * In particular:
+ *
+ *      We did not invent the algorithm.
+ *      The algorithm consistently finds Obfuscation.
+ *      The algorithm killed Obfuscation.
+ *      The algorithm is banned in C.
+ *      The algorithm is from Bell Labs in Jersey.
+ *      The algorithm constantly finds Obfuscation.
+ *      This is not the algorithm.
+ *      This is close.
+ */
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -49,13 +110,15 @@
 #define FLAG_RESERVED		4
 #define FLAG_IOCCC		8
 
-#define BUFFER_SIZE		512
-#define MAX_SIZE		4096		/* IOCCC Rule 2 */
+#define BUFFER_SIZE		521
+#define MAX_SIZE		4096	/* IOCCC Rule 2 */
+#define MAX_COUNT		2053	/* IOCCC Rule 2 */
 
-char usage[] =
+static char usage[] =
 "usage:  ioccc [-ikrs] < prog.c\n"
 "\n"
-"-i\t\tIOCCC size rule (overall size, modified)\n"
+"-i\t\tprint official secondary IOCCC size to stdout\n"
+"\t\tmax.size warnings to stderr, NOTE: implies -r -s\n"
 "-k\t\tkeep block comments\n"
 "-r\t\tcount C reserved words as 1 byte\n"
 "-s\t\tsuppress source output, write only the offical size\n"
@@ -78,6 +141,30 @@ typedef struct {
  * by Johan Bezem of JB Enterprises:
  *
  *	See http://www.bezem.de/en/
+ */
+/*
+ * The following editorial plea expresses a view shared by more than zero
+ * IOCCC judges. It may not represent the opinion of all those involved
+ * with this code nor the International Obfuscated C Code Contest as a whole:
+ *
+ * The long list of reserved words below should be a source
+ * of embarrassment to some of those involved in standardizing C.
+ * The growing list of reserved words, along with an expanding set of
+ * linguistic inventions has the appearance of feature
+ * creep that, if left unchecked, risks turning a beautifully elegant
+ * language into a steaming pile of biological excretion.
+ *
+ * The history of the IOCCC has taught us that even minor changes
+ * to the language are not always well understood by compiler writers,
+ * let alone the standards body who publishes them. We have enormous
+ * sympathy for C compiler writers who must keep up with the creeping
+ * featurism.  We are aware of some C standards members who share
+ * these concerns.  Alas, they seem to be a minority.
+ *
+ * The C standards body as a whole, before they emit yet more mountains of new
+ * standardese, might wish consider the option of mothballing their committee.
+ * Or if they must produce a new standard, consider naming whatever
+ * follows c11 as CNC (C's Not C).  :-)
  */
 static Word cwords[] = {
 	/* Yes Virginia, we left #define off the list on purpose! */
@@ -105,7 +192,9 @@ static Word cwords[] = {
 	{ STRLEN("_Pragma"), "_Pragma" },
 	{ STRLEN("_Static_assert"), "_Static_assert" },
 	{ STRLEN("_Thread_local"), "_Thread_local" },
-	/**/
+	/*
+	 * this comment is not expected to understand itself
+	 */
 	{ STRLEN("alignas"), "alignas" },
 	{ STRLEN("alignof"), "alignof" },
 	{ STRLEN("and"), "and" },
@@ -164,7 +253,15 @@ static Word cwords[] = {
 	{ 0, NULL }
 };
 
-Word *
+/* 
+ * Keep track of discarded bytes by read_line() so count() can report
+ * correct wc(1) equivalent counts.
+ */
+static int xlcount = 0;
+static int xwcount = 0;
+static int xbcount = 0;
+
+static Word *
 find_member(Word *table, const char *string)
 {
 	Word *w;
@@ -182,15 +279,7 @@ find_member(Word *table, const char *string)
 static char trigraph[] = "=(/)'<!>-";
 static char asciimap[] = "#[\\]^{|}~";
 
-/* 
- * Keep track of discarded bytes by read_line() so count() can report
- * correct wc(1) equivalent counts.
- */
-static unsigned xlcount;
-static unsigned xwcount;
-static unsigned xbcount;
-
-size_t
+static size_t
 read_line(char *buf, size_t size)
 {
 	int ch;
@@ -230,9 +319,10 @@ read_line(char *buf, size_t size)
 			length--;
 			continue;
 		}
-		buf[length++] = ch;
-		if (ch == '\n')
+		buf[length++] = (char) ch;
+		if (ch == '\n') {
 			break;
+		}
 	}
 
 	buf[length] = '\0';
@@ -260,7 +350,7 @@ read_line(char *buf, size_t size)
  *	rcount	number of C reserved words
  *	rsaved	number of octets saved with -r
  */
-int
+static int
 count(int flags)
 {
 	Word *w;
@@ -272,26 +362,36 @@ count(int flags)
 
 	/* Start of buffer sentinel. */
 	buf[0] = ' ';
+	buf[BUFFER_SIZE - 1] = 0;     /* paranoia */
 
 	count = saved = 0;
 	keywords = kw_saved = 0;
 	lcount = wcount = bcount = 0;
 	is_comment = is_word = dquote = escape = 0;
 
+	/*
+	 * "no matter how well you may think you understand this code,
+	 *  you don't, so don't mess with it." :-)
+	 */
 	while (0 < read_line(buf+1, sizeof (buf)-1)) {
 		if (!(flags & FLAG_KEEP)) {
 			/* Leading whitespace before comment block? */
 			span = strspn(buf+1, "\t ");
 
 			/* Split / * across reads? */
-			if (buf[1+span] == '/' && buf[2+span] == '\0') {
+			if (buf[1 + span] == '/' && buf[2 + span] == '\0') {
 				(void) ungetc('/', stdin);
 				continue;
 			}
 
-			if (buf[1+span] == '/' && buf[2+span] == '/') 
+			/*
+			 * no comment is a comment
+			 */
+			if (buf[1 + span] == '/' && buf[2 + span] == '/') {
 				continue;
-			if (buf[1+span] == '/' && buf[2+span] == '*') {
+			}
+
+			if (buf[1 + span] == '/' && buf[2 + span] == '*') {
 				/* Strip leading whitespace before comment block. */
 				is_comment = 1;
 			}
@@ -301,16 +401,19 @@ count(int flags)
 			/* Within quoted string? */
 			if (dquote) {
 				/* Escape _this_ character. */
-				if (escape)
+				if (escape) {
 					escape = 0;
+				}
 
 				/* Escape next character. */
-				else if (*p == '\\')
+				else if (*p == '\\') {
 					escape = 1;
+				}
 
 				/* Close quoted string? */
-				else if (*p == '"')
+				else if (*p == '"') {
 					dquote = 0;
+				}
 			}
 
 			/* Not quote string. */
@@ -378,8 +481,9 @@ count(int flags)
 							wcount++;
 						}
 
-						if (!(flags & FLAG_SILENCE))
+						if (!(flags & FLAG_SILENCE)) {
 							fputs(w->word, stdout);
+						}
 
 						/* Count reserved word as one. */
 						kw_saved += w->length - 1;
@@ -395,14 +499,19 @@ count(int flags)
 				}
 			}
 
-			if (!(flags & FLAG_SILENCE))
+			if (!(flags & FLAG_SILENCE)) {
 				fputc(*p, stdout);
+			}
 
 			bcount++;
-			if (*p == '\n')
+			if (*p == '\n') {
 				lcount++;
+			}
 
-			/* Ignore all whitespace. */
+			/* Ignore all whitespace. 
+			 *
+			 * Well not ALL in the Universe, just all here.
+			 */
 			if (isspace(*p)) {
 				is_word = 0;
 				saved++;
@@ -415,8 +524,7 @@ count(int flags)
 			/* Ignore curly braces and semicolons when followed
 			 * by any whitspace or EOF.
 			 */
-			if (strchr("{;}", *p) != NULL
-			&& (isspace(p[1]) || p[1] == '\0')) {
+			if (strchr("{;}", *p) != NULL && (isspace(p[1]) || p[1] == '\0')) {
 				saved++;
 				continue;
 			}
@@ -428,14 +536,19 @@ count(int flags)
 
 	if (flags & FLAG_IOCCC) {
 		/* Output the official IOCCC size tool size to standard out */
-		printf("%d %d\n", bcount, count);
-		if (MAX_SIZE <= bcount)
-			fprintf(stderr, "WARNING: overall size (%d) exceeds IOCCC max.size (%d)\n", bcount, MAX_SIZE);
+		printf("%d\n", count);
+		if (MAX_SIZE < bcount) {
+			fprintf(stderr, "WARNING: program size (%d) exceeds IOCCC Rule 2a max. size (%d)\n", bcount, MAX_SIZE);
+		}
+		if (MAX_COUNT < count) {
+			fprintf(stderr, "WARNING: iocccsize count (%d) exceeds IOCCC Rule 2b max. count (%d)\n", count, MAX_COUNT);
+		}
 	} else {
 		/* The Ugly Truth */
 		fprintf(
-			stderr, "%d %d %d %d\n",
-			lcount + xlcount, wcount + xwcount, bcount + xbcount, count
+			stderr, "%d %d %d %d %d %d %d\n",
+			lcount + xlcount, wcount + xwcount, bcount + xbcount, count,
+			saved, keywords, kw_saved
 		);
 	}
 
@@ -468,7 +581,13 @@ main(int argc, char **argv)
 		}
 	}
 
+	/*
+	 * count as directed - 1 Muha .. 2 Muhaha .. 3 Muhahaha ...
+	 */
 	(void) count(flags);
 
+	/*
+	 * All Done!!! All Done!!! -- Jessical Noll, age 2
+	 */
 	return 0;
 }
