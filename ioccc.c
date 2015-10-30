@@ -1,7 +1,9 @@
 /*
  * iocccsize := IOCCC Source Size Tool
  *
- * This IOCCC size tool source file is version 2015-10-27-v24.
+ * This IOCCC size tool source file is version 2015-10-28-v25.
+ *
+ * "You are not expected to understand this" :-)
  *
  * Public Domain 1992, 2015 by Anthony Howe.  All rights released.
  * With IOCCC minor mods in 2013-2015 by chongo (Landon Curt Noll) /\oo/\
@@ -111,8 +113,8 @@
 #define FLAG_IOCCC		8
 
 #define BUFFER_SIZE		521
-#define MAX_SIZE		4096	/* IOCCC Rule 2 */
-#define MAX_COUNT		2053	/* IOCCC Rule 2 */
+#define MAX_SIZE		4096	/* IOCCC Rule 2a */
+#define MAX_COUNT		2053	/* IOCCC Rule 2b */
 
 static char usage[] =
 "usage:  ioccc [-ikrs] < prog.c\n"
