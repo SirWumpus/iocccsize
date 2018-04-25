@@ -255,7 +255,7 @@ static Word cwords[] = {
 	{ 0, NULL }
 };
 
-/* 
+/*
  * Keep track of discarded bytes by read_line() so count() can report
  * correct wc(1) equivalent counts.
  */
@@ -312,8 +312,8 @@ read_line(char *buf, size_t size)
 			}
 		}
 		if (ch == '\n' && 1 <= length && buf[length-1] == '\\') {
-			/* ISO C11 section 5.1.1.2 Translation Phases 
-			 * point 2 discards backslash newlines. 
+			/* ISO C11 section 5.1.1.2 Translation Phases
+			 * point 2 discards backslash newlines.
 			 */
 			xbcount += 2;
 			xlcount++;
@@ -525,7 +525,7 @@ count(int flags)
 				lcount++;
 			}
 
-			/* Ignore all whitespace. 
+			/* Ignore all whitespace.
 			 *
 			 * Well not ALL in the Universe, just all here.
 			 */
@@ -582,7 +582,7 @@ main(int argc, char **argv)
 		switch (ch) {
 		case 'i':
 			flags |= FLAG_IOCCC | FLAG_RESERVED | FLAG_SILENCE;
-			break;		
+			break;
 		case 'k':
 			flags |= FLAG_KEEP;
 			break;
