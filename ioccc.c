@@ -6,7 +6,7 @@
  * "You are not expected to understand this" :-)
  *
  * Public Domain 1992, 2015 by Anthony Howe.  All rights released.
- * With IOCCC minor mods in 2013-2015 by chongo (Landon Curt Noll) /\oo/\
+ * With IOCCC minor mods in 2013-2015 by chongo /\oo/\ (Landon Curt Noll)
  *
  * SYNOPSIS
  *
