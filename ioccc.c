@@ -177,6 +177,7 @@ static Word cwords[] = {
 	{ STRLEN("#ident"), "#ident" },
 	{ STRLEN("#if"), "#if" },
 	{ STRLEN("#ifdef"), "#ifdef" },
+	{ STRLEN("#ifndef"), "#ifndef" },
 	{ STRLEN("#include"), "#include" },
 	{ STRLEN("#line"), "#line" },
 	{ STRLEN("#pragma"), "#pragma" },
