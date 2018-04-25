@@ -361,6 +361,7 @@ count(int flags)
 	int lcount, wcount, bcount;
 	int is_comment, is_word, dquote, escape;
 	int count, keywords, saved, kw_saved;
+	int squote;
 
 	/* Start of buffer sentinel. */
 	buf[0] = ' ';
@@ -370,6 +371,7 @@ count(int flags)
 	keywords = kw_saved = 0;
 	lcount = wcount = bcount = 0;
 	is_comment = is_word = dquote = escape = 0;
+	squote = 0;
 
 	/*
 	 * "no matter how well you may think you understand this code,
@@ -416,6 +418,15 @@ count(int flags)
 				else if (*p == '"') {
 					dquote = 0;
 				}
+			}
+
+			else if (squote) {
+				if (escape)
+					escape = 0;
+				else if (*p == '\\')
+					escape = 1;
+				else if (*p == '\'')
+					squote = 0;
 			}
 
 			/* Not quote string. */
@@ -493,6 +504,11 @@ count(int flags)
 						count++;
 						continue;
 					}
+				}
+
+				/* Open single quote string? */
+				else if (*p == '\'') {
+					squote = 1;
 				}
 
 				/* Open quoted string? */
