@@ -222,7 +222,6 @@ static Word cwords[] = {
 	{ STRLEN("float"), "float" },
 	{ STRLEN("for"), "for" },
 	{ STRLEN("goto"), "goto" },
-	{ STRLEN("I"), "I" },
 	{ STRLEN("if"), "if" },
 	{ STRLEN("inline"), "inline" },
 	{ STRLEN("int"), "int" },
