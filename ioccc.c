@@ -316,7 +316,6 @@ read_line(char *buf, size_t size)
 			 * point 2 discards backslash newlines. 
 			 */
 			xbcount += 2;
-			xwcount++;
 			xlcount++;
 			length--;
 			continue;
