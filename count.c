@@ -160,16 +160,17 @@ read_ch(FILE *fp)
 	static char asciimap[] = "#[\\]^{|}~";
 
 	while ((ch = fgetc(fp)) != EOF) {
-		if (ch < '\0' || 128 <= ch) {
+		if (ch <= '\0' || 128 <= ch) {
 			errx(1, "NUL or non-ASCII characters");
 		}
 		if (ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
 			continue;
 		}
-		if ((next_ch = fgetc(fp)) == EOF) {
-			break;
-		}
+
+		next_ch = fgetc(fp);
+		(void) ungetc(next_ch, fp);
+
 		if (ch == '\\' && next_ch == '\n') {
 			/* ISO C11 section 5.1.1.2 Translation Phases
 			 * point 2 discards backslash newlines.
@@ -186,7 +187,6 @@ read_ch(FILE *fp)
 			/* Mapped trigraphs count as 1 byte. */
 			return asciimap[tri - trigraph];
 		}
-		(void) ungetc(next_ch, fp);
 		break;
 	}
 
@@ -254,7 +254,7 @@ rule_count(FILE *fp)
 		gross_count++;
 
 		/* End of possible keyword?  Care with #word as there can
-		 * whitespace or comments between # and word.
+		 * be whitespace or comments between # and word.
 		 */
 		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
 			if (find_member(cwords, word) != NULL) {
