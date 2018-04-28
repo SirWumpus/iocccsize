@@ -49,21 +49,25 @@ fi
 
 get_wc()
 {
-	./decom $1 | wc | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$2
+	typeset file="$1"
+	typeset field="$2"
+	typeset filter="$3"
+	${filter:-./decom} $file | wc | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
 }
 
 test()
 {
-	typeset file="test/$1"; shift
-	typeset expect="$1"; shift
+	typeset file="test/$1"
+	typeset expect="$2"
+	typeset filter="$3"
 	typeset gross_count
 	typeset keywords
 	typeset got
 
-	got=$(./decom $file | $__tool $__tool_args 2>&1 >/dev/null)
+	got=$(${filter:-./decom} $file | $__tool $__tool_args 2>&1 >/dev/null)
 	if $__verbose ; then
 		gross_count=$(echo $got | cut -d' ' -f2)
-		bytes=$(get_wc $file 3)
+		bytes=$(get_wc $file 3 $filter)
 		if [ $gross_count != $bytes ]; then
 			echo "FAIL $file: wc $bytes != $gross_count"
 			return
@@ -80,10 +84,11 @@ test()
 }
 
 cat <<EOF >test/comment0.c
-// comment one line
+// comment one line "with a comment string" inside
 int x;
 EOF
 test comment0.c "2 7 1"
+test comment0.c "44 58 1" cat
 
 cat <<EOF >test/comment1.c
 /* comment block same line */
@@ -113,6 +118,11 @@ cat <<EOF >test/comment5.c
 '"' "/*" foobar "*/"
 EOF
 test comment5.c "17 21 0"
+
+cat <<EOF >test/comment6.c
+char str[] = "string /* with */ comment";
+EOF
+test comment6.c "30 42 1"
 
 cat <<EOF >test/main0.c
 int
