@@ -98,7 +98,7 @@ test comment1.c "2 7 1"
 
 cat <<EOF >test/comment2.c
 /*
-comment block same line
+comment block multiline
 */
 int x;
 EOF
@@ -123,6 +123,21 @@ cat <<EOF >test/comment6.c
 char str[] = "string /* with */ comment";
 EOF
 test comment6.c "30 42 1"
+
+cat <<EOF >test/quote0.c
+char str[] = "and\"or";
+EOF
+test quote0.c "16 24 1"
+
+cat <<EOF >test/quote1.c
+char squote = '\'';
+EOF
+test quote1.c "12 20 1"
+
+cat <<EOF >test/quote2.c
+char str[] = "'xor'";
+EOF
+test quote2.c "14 22 1"
 
 cat <<EOF >test/main0.c
 int
@@ -157,6 +172,11 @@ EOF
 test include1.c "20 40 2"
 
 cat <<EOF >test/curly0.c
+char str = "{ curly } ";
+EOF
+test curly0.c "12 25 1"
+
+cat <<EOF >test/curly1.c
 // No spaces after curly braces in array initialiser.
 #include <stdlib.h>
 
@@ -172,9 +192,9 @@ Word list[] = {
 	{0, NULL}
 };
 EOF
-test curly0.c "119 188 6"
+test curly1.c "119 188 6"
 
-cat <<EOF >test/curly1.c
+cat <<EOF >test/curly2.c
 // Spaces after curly braces in array initialiser.
 #include <stdlib.h>
 
@@ -190,9 +210,14 @@ Word list[] = {
 	{ 0, NULL}
 };
 EOF
-test curly1.c "114 191 6"
+test curly2.c "114 191 6"
 
 cat <<EOF >test/semicolon0.c
+char str = "; xor; ";
+EOF
+test semicolon0.c "10 22 1"
+
+cat <<EOF >test/semicolon1.c
 // Spaces after semicolons in for( ; ; ).
 #include <stdio.h>
 
@@ -206,9 +231,9 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test semicolon0.c "65 132 8"
+test semicolon1.c "65 132 8"
 
-cat <<EOF >test/semicolon1.c
+cat <<EOF >test/semicolon2.c
 // No spaces after semicolons in for(;;).
 #include <stdio.h>
 
@@ -222,4 +247,4 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test semicolon1.c "67 126 8"
+test semicolon2.c "67 126 8"
