@@ -32,17 +32,16 @@ shift $(($OPTIND - 1))
 
 make -f count.mk ${__build} all
 
-if [ ! -f './decom' ]; then
-	cat <<-EOF
-		#!/bin/sh
-		if [ $# != 1 ]; then
-			echo 'usage: decom file'
-			exit 2
-		fi
-		gcc -fpreprocessed -dD -E -P "$1"
-	EOF
-	chmod a+x ./decom
-fi
+cat <<-"EOF" >./decom
+	#!/bin/sh
+	if [ $# != 1 ]; then
+		echo 'usage: decom file'
+		exit 2
+	fi
+	gcc -fpreprocessed -dD -E -P "$1"
+EOF
+chmod a+x ./decom
+
 if [ ! -d test ]; then
 	mkdir test
 fi
@@ -79,7 +78,7 @@ test()
 	if [ "$expect" = "$got" ]; then
 		echo "-OK- $file: $got"
 	else
-		echo "FAIL $file: $got != $expect"
+		echo "FAIL $file: got $got != expect $expect"
 	fi
 }
 

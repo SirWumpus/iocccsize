@@ -35,6 +35,6 @@ clean:
 	-rm -f ${PACKAGE}.i ${PACKAGE}$O ${PACKAGE}$E *.stackdump *.core 2>/dev/null
 
 distclean: clean
-	-rm -fr ${IT}$E test 2>/dev/null
+	-rm -fr ${IT}$E test decom 2>/dev/null
 
 test: ./${IT}-test.sh -v
