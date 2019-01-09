@@ -35,6 +35,10 @@
 #define MAX_COUNT		2053	/* IOCCC Rule 2b */
 #define STRLEN(s)		(sizeof (s)-1)
 
+#define NO_COMMENT		0
+#define COMMENT_EOL		1
+#define COMMENT_BLOCK		2
+
 static char usage[] = "usage: ioccc [-v] < prog.c";
 
 static int debug;
@@ -198,7 +202,7 @@ rule_count(FILE *fp)
 {
 	char word[32];
 	size_t gross_count = 0, net_count = 0, keywords = 0;
-	int ch, next_ch, quote = 0, escape = 0, is_comment = 0, wordi = 0;
+	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT, wordi = 0;
 
 	while ((ch = read_ch(fp)) != EOF) {
 		/* Future gazing. */
@@ -224,23 +228,23 @@ rule_count(FILE *fp)
 		}
 
 		/* Within comment to end of line? */
-		else if (is_comment == 1 && ch == '\n') {
-			is_comment = 0;
+		else if (is_comment == COMMENT_EOL && ch == '\n') {
+			is_comment = NO_COMMENT;
 		}
 
 		/* Within comment block? */
-		else if (is_comment == 2 && ch == '*' && next_ch == '/') {
-			is_comment = 0;
+		else if (is_comment == COMMENT_BLOCK && ch == '*' && next_ch == '/') {
+			is_comment = NO_COMMENT;
 		}
 
 		/* Start of comment to end of line? */
 		else if (ch == '/' && next_ch == '/') {
-			is_comment = 1;
+			is_comment = COMMENT_EOL;
 		}
 
 		/* Start of comment block? */
 		else if (ch == '/' && next_ch == '*') {
-			is_comment = 2;
+			is_comment = COMMENT_BLOCK;
 		}
 
 		/* Open single or double quote? */
