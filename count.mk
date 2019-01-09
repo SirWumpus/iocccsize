@@ -11,13 +11,12 @@ E :=
 ########################################################################
 
 top_srcdir	:= ..
-PACKAGE 	:= None
+PROJ 		:= count
 TAR_I		:= -T
 CFLAGS		:= -g -std=c90 -Wall -Wno-char-subscripts -pedantic
 CFLAGS89	:= -g -std=c89 -Wall -Wno-char-subscripts -pedantic
 LDFLAGS		:=
 LIBS		:=
-IT		:= count
 
 .c.i:
 	${CC} -E ${CFLAGS} $*.c >$*.i
@@ -29,12 +28,13 @@ IT		:= count
 
 all: build
 
-build: ${IT}
+build: ${PROJ}
 
 clean:
-	-rm -f ${PACKAGE}.i ${PACKAGE}$O ${PACKAGE}$E *.stackdump *.core 2>/dev/null
+	-rm -f ${PROJ}.i ${PROJ}$O *.stackdump *.core 2>/dev/null
 
 distclean: clean
-	-rm -fr ${IT}$E test decom 2>/dev/null
+	-rm -fr ${PROJ}$E test decom 2>/dev/null
 
-test: ./${IT}-test.sh -v
+test: ./${PROJ}-test.sh -v
+
