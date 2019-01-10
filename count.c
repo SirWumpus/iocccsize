@@ -171,6 +171,28 @@ read_ch(FILE *fp)
 		}
 
 		next_ch = fgetc(fp);
+#ifdef DIGRAPH
+/* 2019-01-10 Currently no special size exception for digraphs.
+ */
+		/* ISO C11 section 6.4.6 Punctuators
+		 * Mapped digraphs count as 1 byte.
+		 */
+		if (ch == '<' && next_ch == ':') {
+			return '[';
+		}
+		if (ch == ':' && next_ch == '>') {
+			return ']';
+		}
+		if (ch == '<' && next_ch == '%') {
+			return '{';
+		}
+		if (ch == '%' && next_ch == '>') {
+			return '}';
+		}
+		if (ch == '%' && next_ch == ':') {
+			return '#';
+		}
+#endif
 #ifdef TRIGRAPH
 /* 2019-01-10 Currently no special size exception for trigraphs.
  */

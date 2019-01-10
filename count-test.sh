@@ -143,6 +143,12 @@ char str[] = "'xor'";
 EOF
 test_size quote2.c "14 22 1"
 
+# 2019-01-10 Currently no special size exception for digraphs.
+cat <<EOF >test/digraph.c
+char str<::> = "'xor'";
+EOF
+test_size digraph.c "16 24 1"
+
 # 2019-01-10 Currently no special size exception for trigraphs.
 cat <<EOF >test/trigraph.c
 char str??(??) = "'xor'";
