@@ -160,8 +160,6 @@ static int
 read_ch(FILE *fp)
 {
 	int ch, next_ch;
-	static char trigraph[] = "=(/)'<!>-";
-	static char asciimap[] = "#[\\]^{|}~";
 
 	while ((ch = fgetc(fp)) != EOF) {
 		if (ch <= '\0' || 128 <= ch) {
@@ -173,6 +171,23 @@ read_ch(FILE *fp)
 		}
 
 		next_ch = fgetc(fp);
+#ifdef TRIGRAPH
+/* 2019-01-10 Currently no special size exception for trigraphs.
+ */
+		if (ch == '?' && next_ch == '?') {
+			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
+			char *tri;
+			static char trigraph[] = "=(/)'<!>-";
+			static char asciimap[] = "#[\\]^{|}~";
+
+			next_ch = fgetc(fp);
+			if ((tri = strchr(trigraph, next_ch)) == NULL) {
+				errx(1, "Invalid trigraph \?\?%c", (char) next_ch);
+			}
+			/* Mapped trigraphs count as 1 byte. */
+			return asciimap[tri - trigraph];
+		}
+#endif
 		(void) ungetc(next_ch, fp);
 
 		if (ch == '\\' && next_ch == '\n') {
@@ -180,16 +195,6 @@ read_ch(FILE *fp)
 			 * point 2 discards backslash newlines.
 			 */
 			continue;
-		}
-		if (ch == '?' && next_ch == '?') {
-			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
-			char *tri;
-			next_ch = fgetc(fp);
-			if ((tri = strchr(trigraph, next_ch)) == NULL) {
-				errx(1, "Invalid trigraph \?\?%c", (char) next_ch);
-			}
-			/* Mapped trigraphs count as 1 byte. */
-			return asciimap[tri - trigraph];
 		}
 		break;
 	}

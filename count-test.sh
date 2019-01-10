@@ -1,5 +1,10 @@
 #!/bin/ksh
 
+export PATH='/bin:/usr/bin:/usr/local/bin:/usr/pkg/bin'
+export ENV=''
+export CDPATH=''
+export LANG=C
+
 usage()
 {
 	echo 'usage: count-test.sh [-bv][-t tool]'
@@ -54,7 +59,7 @@ get_wc()
 	${filter:-./decom} $file | wc | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
 }
 
-test()
+test_size()
 {
 	typeset file="test/$1"
 	typeset expect="$2"
@@ -86,14 +91,14 @@ cat <<EOF >test/comment0.c
 // comment one line "with a comment string" inside
 int x;
 EOF
-test comment0.c "2 7 1"
-test comment0.c "44 58 1" cat
+test_size comment0.c "2 7 1"
+test_size comment0.c "44 58 1" cat
 
 cat <<EOF >test/comment1.c
 /* comment block same line */
 int x;
 EOF
-test comment1.c "2 7 1"
+test_size comment1.c "2 7 1"
 
 cat <<EOF >test/comment2.c
 /*
@@ -101,42 +106,48 @@ comment block multiline
 */
 int x;
 EOF
-test comment2.c "2 7 1"
+test_size comment2.c "2 7 1"
 
 cat <<EOF >test/comment3.c
 a//foo
 EOF
-test comment3.c "1 2 0"
+test_size comment3.c "1 2 0"
 
 cat <<EOF >test/comment4.c
 /*/ int if for /*/
 EOF
-test comment4.c "0 0 0"
+test_size comment4.c "0 0 0"
 
 cat <<EOF >test/comment5.c
 '"' "/*" foobar "*/"
 EOF
-test comment5.c "17 21 0"
+test_size comment5.c "17 21 0"
 
 cat <<EOF >test/comment6.c
 char str[] = "string /* with */ comment";
 EOF
-test comment6.c "30 42 1"
+test_size comment6.c "30 42 1"
 
 cat <<EOF >test/quote0.c
 char str[] = "and\"or";
 EOF
-test quote0.c "16 24 1"
+test_size quote0.c "16 24 1"
 
 cat <<EOF >test/quote1.c
 char squote = '\'';
 EOF
-test quote1.c "12 20 1"
+test_size quote1.c "12 20 1"
 
 cat <<EOF >test/quote2.c
 char str[] = "'xor'";
 EOF
-test quote2.c "14 22 1"
+test_size quote2.c "14 22 1"
+
+# 2019-01-10 Currently no special size exception for trigraphs.
+cat <<EOF >test/trigraph.c
+char str??(??) = "'xor'";
+EOF
+test_size trigraph.c "18 26 1"
 
 cat <<EOF >test/main0.c
 int
@@ -145,7 +156,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test main0.c "22 47 4"
+test_size main0.c "22 47 4"
 
 cat <<EOF >test/hello.c
 #include <stdio.h>
@@ -157,23 +168,23 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test hello.c "58 100 6"
+test_size hello.c "58 100 6"
 
 cat <<EOF >test/include0.c
 # include <stdio.h>
 EOF
-test include0.c "10 20 1"
+test_size include0.c "10 20 1"
 
 cat <<EOF >test/include1.c
 # include <stdio.h>
 #/*hi*/include <stdio.h>
 EOF
-test include1.c "20 40 2"
+test_size include1.c "20 40 2"
 
 cat <<EOF >test/curly0.c
 char str = "{ curly } ";
 EOF
-test curly0.c "12 25 1"
+test_size curly0.c "12 25 1"
 
 cat <<EOF >test/curly1.c
 // No spaces after curly braces in array initialiser.
@@ -191,7 +202,7 @@ Word list[] = {
 	{0, NULL}
 };
 EOF
-test curly1.c "119 188 6"
+test_size curly1.c "119 188 6"
 
 cat <<EOF >test/curly2.c
 // Spaces after curly braces in array initialiser.
@@ -209,12 +220,12 @@ Word list[] = {
 	{ 0, NULL}
 };
 EOF
-test curly2.c "114 191 6"
+test_size curly2.c "114 191 6"
 
 cat <<EOF >test/semicolon0.c
 char str = "; xor; ";
 EOF
-test semicolon0.c "10 22 1"
+test_size semicolon0.c "10 22 1"
 
 cat <<EOF >test/semicolon1.c
 // Spaces after semicolons in for( ; ; ).
@@ -230,7 +241,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test semicolon1.c "65 132 8"
+test_size semicolon1.c "65 132 8"
 
 cat <<EOF >test/semicolon2.c
 // No spaces after semicolons in for(;;).
@@ -246,4 +257,4 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test semicolon2.c "67 126 8"
+test_size semicolon2.c "67 126 8"
