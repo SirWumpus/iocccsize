@@ -200,7 +200,7 @@ read_ch(FILE *fp)
 static void
 rule_count(FILE *fp)
 {
-	char word[32];
+	char word[64];
 	size_t gross_count = 0, net_count = 0, keywords = 0;
 	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT, wordi = 0;
 
