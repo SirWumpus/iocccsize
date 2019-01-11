@@ -25,6 +25,8 @@
  *	';', '{' or '}' octet immediately before the end of file.
  */
 
+#define TELL_UNOBSERVANT_PROGRAMMER
+
 #include <err.h>
 #include <ctype.h>
 #include <getopt.h>
@@ -279,6 +281,18 @@ rule_count(FILE *fp)
 		net_count++;
 	}
 
+#ifdef TELL_UNOBSERVANT_PROGRAMMER
+/* Not entirely in agreement with this request since its the programmer's
+ * job to be cognisant of the rules and guidelines and the state of their
+ * work.
+ */
+	if (MAX_SIZE < gross_count) {
+		(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
+	}
+	if (MAX_COUNT < net_count) {
+		(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
+	}
+#endif
 	(void) fprintf(stderr, debug ? "%lu %lu %lu\n" : "%lu\n", net_count, gross_count, keywords);
 }
 
