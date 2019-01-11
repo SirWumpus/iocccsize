@@ -43,7 +43,7 @@ cat <<-"EOF" >./decom
 		echo 'usage: decom file'
 		exit 2
 	fi
-	gcc -fpreprocessed -dD -E -P "$1"
+	gcc -trigraphs -fpreprocessed -dD -E -P "$1"
 EOF
 chmod a+x ./decom
 
@@ -73,7 +73,7 @@ test_size()
 		gross_count=$(echo $got | cut -d' ' -f2)
 		bytes=$(get_wc $file 3 $filter)
 		if [ $gross_count != $bytes ]; then
-			echo "FAIL $file: wc $bytes != $gross_count"
+			echo "FAIL $file: got $gross_count != wc $bytes"
 			return
 		fi
 	else
@@ -128,6 +128,12 @@ char str[] = "string /* with */ comment";
 EOF
 test_size comment6.c "30 42 1"
 
+cat <<EOF >test/comment7.c
+// comment with backslash newline \
+a++;
+EOF
+test_size comment7.c "0 0 0"
+
 cat <<EOF >test/quote0.c
 char str[] = "and\"or";
 EOF
@@ -150,10 +156,28 @@ EOF
 test_size digraph.c "16 24 1"
 
 # 2019-01-10 Currently no special size exception for trigraphs.
-cat <<EOF >test/trigraph.c
+cat <<EOF >test/trigraph0.c
 char str??(??) = "'xor'";
 EOF
-test_size trigraph.c "18 26 1"
+test_size trigraph0.c "18 26 1"
+
+# Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
+# gcc does not appear to support ??/ as an alternative to \ + newline;
+# it leaves the a++;
+cat <<EOF >test/trigraph1.c
+// Will the next line be executed????????????????/
+a++;
+EOF
+test_size trigraph1.c "0 5 0"
+
+# Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
+# gcc does not appear to support ??/ as an alternative to \ + newline.
+cat <<EOF >test/trigraph2.c
+/??/
+* A comment *??/
+/
+EOF
+test_size trigraph2.c "0 24 0"
 
 cat <<EOF >test/main0.c
 int
@@ -176,14 +200,40 @@ main(int argc, char **argv)
 EOF
 test_size hello.c "58 100 6"
 
+# Digraph for #include
+cat <<EOF >test/hello_digraph.c
+%:  include <stdio.h>
+
+int
+main(int argc, char **argv)
+{
+	(void) printf("Hello world!\n");
+	return 0;
+}
+EOF
+test_size hello_digraph.c "58 102 6"
+
+# Trigraph for #include
+cat <<EOF >test/hello_trigraph.c
+??=  include <stdio.h>
+
+int
+main(int argc, char **argv)
+{
+	(void) printf("Hello world!\n");
+	return 0;
+}
+EOF
+test_size hello_trigraph.c "58 103 6"
+
 cat <<EOF >test/include0.c
 # include <stdio.h>
 EOF
 test_size include0.c "10 20 1"
 
 cat <<EOF >test/include1.c
-# include <stdio.h>
-#/*hi*/include <stdio.h>
+#  include <stdio.h>
+#/*hi*/include <ctype.h>
 EOF
 test_size include1.c "20 40 2"
 
