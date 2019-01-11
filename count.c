@@ -250,15 +250,8 @@ rule_count(FILE *fp)
 		 */
 		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
 			if (find_member(cwords, word) != NULL) {
-
 				/* Count keyword as 1. */
-#define HUH
-#ifdef HUH
-/* Disabled and the counts match the old iocccsize tool.
- * Enabled the net_count is smaller, but the logic seems correct.
- */
 				net_count = net_count - wordi + 1;
-#endif
 				keywords++;
 			}
 			word[wordi = 0] = '\0';
