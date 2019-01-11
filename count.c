@@ -171,45 +171,6 @@ read_ch(FILE *fp)
 		}
 
 		next_ch = fgetc(fp);
-#ifdef DIGRAPH
-/* 2019-01-10 Currently no special size exception for digraphs.
- */
-		/* ISO C11 section 6.4.6 Punctuators
-		 * Mapped digraphs count as 1 byte.
-		 */
-		if (ch == '<' && next_ch == ':') {
-			return '[';
-		}
-		if (ch == ':' && next_ch == '>') {
-			return ']';
-		}
-		if (ch == '<' && next_ch == '%') {
-			return '{';
-		}
-		if (ch == '%' && next_ch == '>') {
-			return '}';
-		}
-		if (ch == '%' && next_ch == ':') {
-			return '#';
-		}
-#endif
-#ifdef TRIGRAPH
-/* 2019-01-10 Currently no special size exception for trigraphs.
- */
-		if (ch == '?' && next_ch == '?') {
-			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
-			char *tri;
-			static char trigraph[] = "=(/)'<!>-";
-			static char asciimap[] = "#[\\]^{|}~";
-
-			next_ch = fgetc(fp);
-			if ((tri = strchr(trigraph, next_ch)) == NULL) {
-				errx(1, "Invalid trigraph \?\?%c", (char) next_ch);
-			}
-			/* Mapped trigraphs count as 1 byte. */
-			return asciimap[tri - trigraph];
-		}
-#endif
 		(void) ungetc(next_ch, fp);
 
 		if (ch == '\\' && next_ch == '\n') {
