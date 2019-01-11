@@ -13,7 +13,7 @@ E :=
 top_srcdir	:= ..
 PROJ 		:= count
 TAR_I		:= -T
-CFLAGS		:= -g -std=c90 -Wall -Wno-char-subscripts -pedantic
+CFLAGS		:= -g -std=c11 -Wall -Wno-char-subscripts -pedantic
 CFLAGS89	:= -g -std=c89 -Wall -Wno-char-subscripts -pedantic
 LDFLAGS		:=
 LIBS		:=
@@ -34,7 +34,7 @@ clean:
 	-rm -f ${PROJ}.i ${PROJ}$O *.stackdump *.core 2>/dev/null
 
 distclean: clean
-	-rm -fr ${PROJ}$E test decom 2>/dev/null
+	-rm -fr ${PROJ}$E test decom a.out 2>/dev/null
 
 test: ./${PROJ}-test.sh -v
 
