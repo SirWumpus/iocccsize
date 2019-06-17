@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdio.h>
 
+#define WORD_BUFFER_SIZE	64
 #define MAX_SIZE		4096	/* IOCCC Rule 2a */
 #define MAX_COUNT		2053	/* IOCCC Rule 2b */
 #define STRLEN(s)		(sizeof (s)-1)
@@ -190,7 +191,7 @@ read_ch(FILE *fp)
 static void
 rule_count(FILE *fp)
 {
-	char word[64];
+	char word[WORD_BUFFER_SIZE];
 	size_t gross_count = 0, net_count = 0, keywords = 0;
 	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT, wordi = 0;
 
