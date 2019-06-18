@@ -220,26 +220,38 @@ rule_count(FILE *fp)
 
 		/* Within comment to end of line? */
 		else if (is_comment == COMMENT_EOL && ch == '\n') {
+			if (debug > 1) {
+				(void) fprintf(stderr, "~~NO_COMMENT\n");
+			}
 			is_comment = NO_COMMENT;
 		}
 
 		/* Within comment block? */
 		else if (is_comment == COMMENT_BLOCK && ch == '*' && next_ch == '/') {
+			if (debug > 1) {
+				(void) fprintf(stderr, "~~NO_COMMENT\n");
+			}
 			is_comment = NO_COMMENT;
 		}
 
 		/* Start of comment to end of line? */
-		else if (ch == '/' && next_ch == '/') {
+		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '/') {
+			if (debug > 1) {
+				(void) fprintf(stderr, "~~COMMENT_EOL\n");
+			}
 			is_comment = COMMENT_EOL;
 		}
 
 		/* Start of comment block? */
-		else if (ch == '/' && next_ch == '*') {
+		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '*') {
+			if (debug > 1) {
+				(void) fprintf(stderr, "~~COMMENT_BLOCK\n");
+			}
 			is_comment = COMMENT_BLOCK;
 		}
 
 		/* Open single or double quote? */
-		else if (ch == '\'' || ch == '"') {
+		else if (is_comment == NO_COMMENT && (ch == '\'' || ch == '"')) {
 			quote = ch;
 		}
 
@@ -256,6 +268,9 @@ rule_count(FILE *fp)
 				/* Count keyword as 1. */
 				net_count = net_count - wordi + 1;
 				keywords++;
+				if (debug > 1) {
+					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", keywords, word);
+				}
 			}
 			word[wordi = 0] = '\0';
 		}
@@ -287,11 +302,13 @@ rule_count(FILE *fp)
  * job to be cognisant of the rules and guidelines and the state of their
  * work.
  */
-	if (MAX_SIZE < gross_count) {
-		(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
-	}
-	if (MAX_COUNT < net_count) {
-		(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
+	if (debug == 0) {
+		if (MAX_SIZE < gross_count) {
+			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
+		}
+		if (MAX_COUNT < net_count) {
+			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
+		}
 	}
 #endif
 	(void) fprintf(stderr, debug ? "%lu %lu %lu\n" : "%lu\n", net_count, gross_count, keywords);
