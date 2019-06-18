@@ -36,5 +36,6 @@ clean:
 distclean: clean
 	-rm -fr ${PROJ}$E test decom a.out 2>/dev/null
 
-test: ./${PROJ}-test.sh -v
+test: build
+	./${PROJ}-test.sh -v
 
