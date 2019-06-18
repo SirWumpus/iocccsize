@@ -153,7 +153,7 @@ test_size quote2.c "14 22 1"
 cat <<EOF >test/digraph.c
 char str<::> = "'xor'";
 EOF
-test_size digraph.c "16 24 1"
+test_size digraph.c "14 24 1"
 
 # 2019-01-10 Currently no special size exception for trigraphs.
 cat <<EOF >test/trigraph0.c
@@ -162,22 +162,32 @@ EOF
 test_size trigraph0.c "18 26 1"
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
-# gcc does not appear to support ??/ as an alternative to \ + newline;
-# it leaves the a++;
 cat <<EOF >test/trigraph1.c
 // Will the next line be executed????????????????/
 a++;
 EOF
-test_size trigraph1.c "0 5 0"
+# gcc with -fpreprocessed will not process trigraphs, but will remove
+# comments, which is why this test of ??/ plus newline does not work.
+#OFF test_size trigraph1.c "0 0 0"
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
-# gcc does not appear to support ??/ as an alternative to \ + newline.
 cat <<EOF >test/trigraph2.c
 /??/
 * A comment *??/
 /
 EOF
-test_size trigraph2.c "0 24 0"
+# gcc with -fpreprocessed will not process trigraphs, but will remove
+# comments, which is why this test of ??/ plus newline does not work.
+#OFF test_size trigraph2.c "0 0 0"
+
+cat <<EOF >test/trigraph3.c
+#define FOO ??/
+   a++
+FOO;
+EOF
+# gcc with -fpreprocessed will not process trigraphs nor expand macros,
+# which is why this test of ??/ plus newline does not work.
+#OFF test_size trigraph3.c "0 5 0"
 
 cat <<EOF >test/main0.c
 int
@@ -200,31 +210,33 @@ main(int argc, char **argv)
 EOF
 test_size hello.c "58 100 6"
 
-# Digraph for #include
+# Digraph for #include and curlys.
 cat <<EOF >test/hello_digraph.c
-%:  include <stdio.h>
+%:    include <stdio.h>
 
 int
 main(int argc, char **argv)
-{
+<%
 	(void) printf("Hello world!\n");
 	return 0;
-}
+%>
 EOF
-test_size hello_digraph.c "58 102 6"
+# 104, not 108, because gcc removes blank lines and compacts extra spaces.
+test_size hello_digraph.c "60 104 6"
 
-# Trigraph for #include
+# Trigraph for #include and curlys.
 cat <<EOF >test/hello_trigraph.c
-??=  include <stdio.h>
+??=    include <stdio.h>
 
 int
 main(int argc, char **argv)
-{
+??<
 	(void) printf("Hello world!\n");
 	return 0;
-}
+??>
 EOF
-test_size hello_trigraph.c "58 103 6"
+# gcc with -fpreprocessed will not process trigraphs.
+#OFF test_size hello_trigraph.c "60 104 6"
 
 cat <<EOF >test/include0.c
 # include <stdio.h>

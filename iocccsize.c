@@ -25,6 +25,7 @@
  *	';', '{' or '}' octet immediately before the end of file.
  */
 
+#define DIGRAPHS
 #define TELL_UNOBSERVANT_PROGRAMMER
 
 #include <err.h>
@@ -257,6 +258,24 @@ rule_count(FILE *fp)
 
 		(void) fputc(ch, stdout);
 
+#ifdef DIGRAPHS
+		/* ISO C11 section 6.4.6 Punctuators, digraphs handled during
+		 * tokenization, but map here and count as 1 byte, like their
+		  *ASCII counter parts.
+		 */
+		if (is_comment == NO_COMMENT && quote == 0) {
+			const char *d, digraphs[] = "[<:]:>{<%}%>#%:";
+			for (d = digraphs; *d != '\0'; d += 3) {
+				if (ch == d[1] && next_ch == d[2]) {
+					(void) fputc(next_ch, stdout);
+					(void) fgetc(fp);
+					gross_count++;
+					ch = d[0];
+					break;
+				}
+			}
+		}
+#endif
 		/* Sanity check against file size and wc(1) byte count. */
 		gross_count++;
 
