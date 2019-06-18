@@ -1,7 +1,7 @@
 /*
  * SYNOPSIS
  *
- * 	ioccc [-v] < input
+ * 	iocccsize [-v] < input
  *
  * DESCRIPION
  *
@@ -42,7 +42,7 @@
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
 
-static char usage[] = "usage: ioccc [-v] < prog.c";
+static char usage[] = "usage: iocccsize [-v] < prog.c";
 
 static int debug;
 

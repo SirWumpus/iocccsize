@@ -11,7 +11,7 @@ E :=
 ########################################################################
 
 top_srcdir	:= ..
-PROJ 		:= count
+PROJ 		:= iocccsize
 TAR_I		:= -T
 CFLAGS		:= -g -std=c11 -Wall -Wno-char-subscripts -pedantic
 CFLAGS89	:= -g -std=c89 -Wall -Wno-char-subscripts -pedantic

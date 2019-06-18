@@ -7,11 +7,11 @@ export LANG=C
 
 usage()
 {
-	echo 'usage: count-test.sh [-bv][-t tool]'
+	echo 'usage: iocccsize-test.sh [-bv][-t tool]'
 	exit 2
 }
 
-__tool="./count"
+__tool="./iocccsize"
 __verbose=false
 
 while getopts 'bvt:' opt; do
@@ -35,7 +35,7 @@ shift $(($OPTIND - 1))
 #        usage
 #fi
 
-make -f count.mk ${__build} all
+make ${__build} all
 
 cat <<-"EOF" >./decom
 	#!/bin/sh
