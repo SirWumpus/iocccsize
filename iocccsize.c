@@ -163,27 +163,13 @@ find_member(Word *table, const char *string)
 static int
 read_ch(FILE *fp)
 {
-	int ch, next_ch;
+	int ch;
 
-	while ((ch = fgetc(fp)) != EOF) {
-		if (ch <= '\0' || 128 <= ch) {
-			errx(1, "NUL or non-ASCII characters");
-		}
-		if (ch == '\r') {
-			/* Discard bare CR and those part of CRLF. */
-			continue;
-		}
-
-		next_ch = fgetc(fp);
-		(void) ungetc(next_ch, fp);
-
-		if (ch == '\\' && next_ch == '\n') {
-			/* ISO C11 section 5.1.1.2 Translation Phases
-			 * point 2 discards backslash newlines.
-			 */
-			continue;
-		}
-		break;
+	while ((ch = fgetc(fp)) != EOF && ch == '\r') {
+		/* Discard bare CR and those part of CRLF. */
+	}
+	if (ch == '\0' || 128 <= ch) {
+		errx(1, "NUL or non-ASCII characters");
 	}
 
 	return ch;
@@ -199,6 +185,15 @@ rule_count(FILE *fp)
 	while ((ch = read_ch(fp)) != EOF) {
 		/* Future gazing. */
 		next_ch = read_ch(fp);
+
+		if (ch == '\\' && next_ch == '\n') {
+			/* ISO C11 section 5.1.1.2 Translation Phases
+			 * point 2 discards backslash newlines.
+			 */
+			gross_count += 2;
+			continue;
+		}
+
 		(void) ungetc(next_ch, fp);
 
 		/* Within quoted string? */
@@ -264,7 +259,8 @@ rule_count(FILE *fp)
 		  *ASCII counter parts.
 		 */
 		if (is_comment == NO_COMMENT && quote == 0) {
-			const char *d, digraphs[] = "[<:]:>{<%}%>#%:";
+			const char *d;
+			static const char digraphs[] = "[<:]:>{<%}%>#%:";
 			for (d = digraphs; *d != '\0'; d += 3) {
 				if (ch == d[1] && next_ch == d[2]) {
 					(void) fputc(next_ch, stdout);
