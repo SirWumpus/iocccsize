@@ -1,7 +1,23 @@
 /*
+ * iocccsize - IOCCC Source Size Tool
+ *
+ *	"You are not expected to understand this" :-)
+ *
+ *	Public Domain 1992, 2015, 2019 by Anthony Howe.  All rights released.
+ *	With IOCCC minor mods in 2019 by chongo (Landon Curt Noll) ^oo^
+ *
  * SYNOPSIS
  *
- * 	iocccsize [-v] < input
+ * 	iocccsize [-ihv] < input
+ *
+ *	-i	ignored for backward compatibility
+ *	-h	print usage message in stderr and exit
+ *	-v	turn on some debugging to stderr; -vv or -vvv for more
+ *
+ *	The source is written to stdout, with possible translations ie. trigraphs.
+ *	The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),
+ *	gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write
+ *	more tool diagnostics.
  *
  * DESCRIPION
  *
@@ -27,7 +43,33 @@
 
 #define DIGRAPHS
 #define TRIGRAPHS
-#define TELL_UNOBSERVANT_PROGRAMMER
+
+/*
+ * IOCCC Judge's remarks:
+ *
+ * This code contains undocumented features.  On the other hand, this code
+ * is RTFS (for certain values of RTFS).  One might say that this code
+ * perfectly documents itself.  :-)
+ *
+ * Many thanks to Anthony Howe for taking the time to put his OCD
+ * (Obfuscated Coding Determination) into this code!
+ */
+
+/*
+ * HINT: The algorithm implemented by this code may or not be obfuscated.
+ *       The algorithm may not or may appear to be obfuscated.
+ *
+ * In particular:
+ *
+ *      We did not invent the algorithm.
+ *      The algorithm consistently finds Obfuscation.
+ *      The algorithm killed Obfuscation.
+ *      The algorithm is banned in C.
+ *      The algorithm is from Bell Labs in Jersey.
+ *      The algorithm constantly finds Obfuscation.
+ *      This is not the algorithm.
+ *      This is close.
+ */
 
 #include <err.h>
 #include <ctype.h>
@@ -44,9 +86,21 @@
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
 
-static char usage[] = "usage: iocccsize [-v] < prog.c";
+static char usage[] =
+"usage: iocccsize [-ihv] < prog.c\n"
+"\n"
+"-i\t\tignored for backward compatibility\n"
+"-h\t\tprint usage message in stderr and exit\n"
+"-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
+"\n"
+"The source is written to stdout, with possible translations ie. trigraphs.\n"
+"The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
+"gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write\n"
+"more tool diagnostics.\n"
+;
 
 static int debug;
+static char *out_fmt = "%lu\n";
 
 /*
  * C reserved words, plus a few #preprocessor tokens, that count as 1
@@ -363,21 +417,28 @@ rule_count(FILE *fp)
 		net_count++;
 	}
 
-#ifdef TELL_UNOBSERVANT_PROGRAMMER
-/* Not entirely in agreement with this request since its the programmer's
- * job to be cognisant of the rules and guidelines and the state of their
- * work.
- */
+	/*
+	 * The original author was not entirely in agreement with printing
+	 * these warnings, since he believes that its the programmer's job to
+	 * be cognisant of the rules, guidelines, and the state of their work.
+	 *
+	 * The IOCCC judges observe that enough IOCCC submitters are not so
+	 * cognizant (cognisant) and so make these warnings manditory in the
+	 * hopes it will reduce the number of entries that violate the IOCCC
+	 * size rules.
+	 */
 	if (debug == 0) {
 		if (MAX_SIZE < gross_count) {
 			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
+			(void) fprintf(stderr, "Warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
 		}
 		if (MAX_COUNT < net_count) {
 			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
+			(void) fprintf(stderr, "Warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
 		}
 	}
-#endif
-	(void) fprintf(stderr, debug ? "%lu %lu %lu\n" : "%lu\n", net_count, gross_count, keywords);
+
+	(void) fprintf(stderr, out_fmt, net_count, gross_count, keywords);
 }
 
 int
@@ -385,11 +446,20 @@ main(int argc, char **argv)
 {
 	int ch;
 
-	while ((ch = getopt(argc, argv, "v")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihv")) != -1) {
 		switch (ch) {
+		case 'i': /* ignored for backward compatibility */
+			break;
+
 		case 'v':
 			debug++;
+			out_fmt = "%lu %lu %lu\n";
 			break;
+
+		case '6': /* You're a RTFS master!  Congrats. */
+			errx(6, "There is NO... Rule 6!\nI'm not a number!\nI'm a free(void *man)!\n");
+
+		case 'h':
 		default:
 			errx(2, "%s", usage);
 		}
@@ -400,5 +470,8 @@ main(int argc, char **argv)
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
 	rule_count(stdin);
 
+	/*
+	 * All Done!!! All Done!!! -- Jessica Noll, age 2
+	 */
 	return 0;
 }

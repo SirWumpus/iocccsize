@@ -15,14 +15,14 @@ PROJ 		:= iocccsize
 TAR_I		:= -T
 CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic
 CFLAGS89	:= -g -std=c89 -Wall -Wextra -Wno-char-subscripts -pedantic
-LDFLAGS		:=
+CPPFLAGS	:=
 LIBS		:=
 
 .c.i:
-	${CC} -E ${CFLAGS} $*.c >$*.i
+	${CC} -E ${CFLAGS} ${CPPFLAGS} $*.c >$*.i
 
 .c$E:
-	${CC} ${CFLAGS} -o$*$E $*.c
+	${CC} ${CFLAGS} ${CPPFLAGS} -o$*$E $*.c
 
 #######################################################################
 
@@ -38,4 +38,7 @@ distclean: clean
 
 test: build
 	./${PROJ}-test.sh -v
+
+version:
+	git describe --tags --abbrev=0 >VERSION
 

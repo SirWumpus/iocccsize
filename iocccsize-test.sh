@@ -1,4 +1,11 @@
-#!/bin/ksh
+#!/usr/bin/env bash
+#
+# iocccsize-gcc-test.sh - IOCCC Size Tool Tests
+#
+# "You are not expected to understand this" :-)
+#
+# Public Domain 1992, 2015, 2019 by Anthony Howe.  All rights released.
+# With IOCCC minor mods in 2019 by chongo (Landon Curt Noll) ^oo^
 
 export PATH='/bin:/usr/bin:/usr/local/bin:/usr/pkg/bin'
 export ENV=''
