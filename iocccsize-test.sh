@@ -85,10 +85,10 @@ test_size()
 
 cat <<EOF >test/splitline0.c
 #define FOO \\
-    a++
+    int a = 666;
 FOO;
 EOF
-test_size splitline0.c "16 27 0"
+test_size splitline0.c "19 36 1"
 
 #######################################################################
 
@@ -149,9 +149,9 @@ test_size comment6.c "30 42 1"
 
 cat <<EOF >test/comment7.c
 // comment with backslash newline \\
-a++;
+int a = 666;
 EOF
-test_size comment7.c "32 41 0"
+test_size comment7.c "37 49 0"
 
 #######################################################################
 
@@ -193,9 +193,9 @@ test_size trigraph0.c "14 26 1"
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
 cat <<EOF >test/trigraph1.c
 // Will the next line be executed????????????????/
-a++;
+int a = 666;
 EOF
-test_size trigraph1.c "44 56 0"
+test_size trigraph1.c "49 64 0"
 
 #######################################################################
 
@@ -211,12 +211,10 @@ test_size trigraph2.c "12 24 0"
 
 cat <<EOF >test/trigraph3.c
 #define FOO ??/
-   a++
+    int a = 666;
 FOO;
 EOF
-# gcc with -fpreprocessed will not process trigraphs nor expand macros,
-# which is why this test of ??/ plus newline does not work.
-#OFF test_size trigraph3.c "0 5 0"
+test_size trigraph3.c "19 38 1"
 
 #######################################################################
 
