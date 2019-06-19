@@ -37,16 +37,6 @@ shift $(($OPTIND - 1))
 
 make ${__build} all
 
-cat <<-"EOF" >./decom
-	#!/bin/sh
-	if [ $# != 1 ]; then
-		echo 'usage: decom file'
-		exit 2
-	fi
-	gcc -trigraphs -fpreprocessed -dD -E -P "$1"
-EOF
-chmod a+x ./decom
-
 if [ ! -d test ]; then
 	mkdir test
 fi
@@ -55,20 +45,17 @@ get_wc()
 {
 	typeset file="$1"
 	typeset field="$2"
-	typeset filter="$3"
-	${filter:-./decom} $file | wc | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
+	wc $file | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
 }
 
 test_size()
 {
 	typeset file="test/$1"
 	typeset expect="$2"
-	typeset filter="$3"
 	typeset gross_count
-	typeset keywords
 	typeset got
 
-	got=$(${filter:-./decom} $file | $__tool $__tool_args 2>&1 >/dev/null)
+	got=$($__tool $__tool_args <$file 2>&1 >/dev/null)
 	if $__verbose ; then
 		gross_count=$(echo $got | cut -d' ' -f2)
 		bytes=$(get_wc $file 3 $filter)
@@ -87,67 +74,100 @@ test_size()
 	fi
 }
 
+#######################################################################
+
+cat <<EOF >test/splitline0.c
+#define FOO \\
+    a++
+FOO;
+EOF
+test_size splitline0.c "16 27 0"
+
+#######################################################################
+
 cat <<EOF >test/comment0.c
 // comment one line "with a comment string" inside
 int x;
 EOF
-test_size comment0.c "2 7 1"
-test_size comment0.c "44 58 1" cat
+test_size comment0.c "44 58 1"
+
+#######################################################################
 
 cat <<EOF >test/comment1.c
-/* comment block same line */
+/* comment block same line 'with a comment string' */
 int x;
 EOF
-test_size comment1.c "2 7 1"
+test_size comment1.c "46 61 1"
+
+#######################################################################
 
 cat <<EOF >test/comment2.c
 /*
-comment block multiline
+comment block
+multiline
 */
 int x;
 EOF
-test_size comment2.c "2 7 1"
+test_size comment2.c "27 37 1"
+
+#######################################################################
 
 cat <<EOF >test/comment3.c
 a//foo
 EOF
-test_size comment3.c "1 2 0"
+test_size comment3.c "6 7 0"
+
+#######################################################################
 
 cat <<EOF >test/comment4.c
 /*/ int if for /*/
 EOF
-test_size comment4.c "0 0 0"
+test_size comment4.c "14 19 0"
+
+#######################################################################
 
 cat <<EOF >test/comment5.c
 '"' "/*" foobar "*/"
 EOF
 test_size comment5.c "17 21 0"
 
+#######################################################################
+
 cat <<EOF >test/comment6.c
 char str[] = "string /* with */ comment";
 EOF
 test_size comment6.c "30 42 1"
 
+#######################################################################
+
 cat <<EOF >test/comment7.c
-// comment with backslash newline \
+// comment with backslash newline \\
 a++;
 EOF
-test_size comment7.c "0 0 0"
+test_size comment7.c "32 41 0"
+
+#######################################################################
 
 cat <<EOF >test/quote0.c
 char str[] = "and\"or";
 EOF
 test_size quote0.c "16 24 1"
 
+#######################################################################
+
 cat <<EOF >test/quote1.c
 char squote = '\'';
 EOF
 test_size quote1.c "12 20 1"
 
+#######################################################################
+
 cat <<EOF >test/quote2.c
 char str[] = "'xor'";
 EOF
 test_size quote2.c "14 22 1"
+
+#######################################################################
 
 # 2019-01-10 Currently no special size exception for digraphs.
 cat <<EOF >test/digraph.c
@@ -155,11 +175,15 @@ char str<::> = "'xor'";
 EOF
 test_size digraph.c "14 24 1"
 
+#######################################################################
+
 # 2019-01-10 Currently no special size exception for trigraphs.
 cat <<EOF >test/trigraph0.c
 char str??(??) = "'xor'";
 EOF
 test_size trigraph0.c "18 26 1"
+
+#######################################################################
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
 cat <<EOF >test/trigraph1.c
@@ -169,6 +193,8 @@ EOF
 # gcc with -fpreprocessed will not process trigraphs, but will remove
 # comments, which is why this test of ??/ plus newline does not work.
 #OFF test_size trigraph1.c "0 0 0"
+
+#######################################################################
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
 cat <<EOF >test/trigraph2.c
@@ -180,6 +206,8 @@ EOF
 # comments, which is why this test of ??/ plus newline does not work.
 #OFF test_size trigraph2.c "0 0 0"
 
+#######################################################################
+
 cat <<EOF >test/trigraph3.c
 #define FOO ??/
    a++
@@ -189,6 +217,8 @@ EOF
 # which is why this test of ??/ plus newline does not work.
 #OFF test_size trigraph3.c "0 5 0"
 
+#######################################################################
+
 cat <<EOF >test/main0.c
 int
 main(int argc, char **argv)
@@ -197,6 +227,8 @@ main(int argc, char **argv)
 }
 EOF
 test_size main0.c "22 47 4"
+
+#######################################################################
 
 cat <<EOF >test/hello.c
 #include <stdio.h>
@@ -208,7 +240,9 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size hello.c "58 100 6"
+test_size hello.c "58 101 6"
+
+#######################################################################
 
 # Digraph for #include and curlys.
 cat <<EOF >test/hello_digraph.c
@@ -221,8 +255,9 @@ main(int argc, char **argv)
 	return 0;
 %>
 EOF
-# 104, not 108, because gcc removes blank lines and compacts extra spaces.
-test_size hello_digraph.c "60 104 6"
+test_size hello_digraph.c "60 108 6"
+
+#######################################################################
 
 # Trigraph for #include and curlys.
 cat <<EOF >test/hello_trigraph.c
@@ -238,24 +273,32 @@ EOF
 # gcc with -fpreprocessed will not process trigraphs.
 #OFF test_size hello_trigraph.c "60 104 6"
 
+#######################################################################
+
 cat <<EOF >test/include0.c
-# include <stdio.h>
+#  include <stdio.h>
 EOF
-test_size include0.c "10 20 1"
+test_size include0.c "10 21 1"
+
+#######################################################################
 
 cat <<EOF >test/include1.c
 #  include <stdio.h>
 #/*hi*/include <ctype.h>
 EOF
-test_size include1.c "20 40 2"
+test_size include1.c "26 46 2"
+
+#######################################################################
 
 cat <<EOF >test/curly0.c
 char str = "{ curly } ";
 EOF
 test_size curly0.c "12 25 1"
 
+#######################################################################
+
+# No spaces after curly braces in array initialiser.
 cat <<EOF >test/curly1.c
-// No spaces after curly braces in array initialiser.
 #include <stdlib.h>
 
 #define STRLEN(s)		(sizeof (s)-1)
@@ -270,10 +313,12 @@ Word list[] = {
 	{0, NULL}
 };
 EOF
-test_size curly1.c "119 188 6"
+test_size curly1.c "119 192 6"
 
+#######################################################################
+
+# Spaces after curly braces in array initialiser.
 cat <<EOF >test/curly2.c
-// Spaces after curly braces in array initialiser.
 #include <stdlib.h>
 
 #define STRLEN(s)		(sizeof (s)-1)
@@ -286,17 +331,21 @@ typedef struct {
 Word list[] = {
 	{ STRLEN("spaced  curly"), "spaced  curly"} ,
 	{ 0, NULL}
-};
+} ;
 EOF
-test_size curly2.c "114 191 6"
+test_size curly2.c "113 196 6"
+
+#######################################################################
 
 cat <<EOF >test/semicolon0.c
 char str = "; xor; ";
 EOF
 test_size semicolon0.c "10 22 1"
 
+#######################################################################
+
+# Spaces after semicolons in for( ; ; ).
 cat <<EOF >test/semicolon1.c
-// Spaces after semicolons in for( ; ; ).
 #include <stdio.h>
 
 int
@@ -309,10 +358,12 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size semicolon1.c "65 132 8"
+test_size semicolon1.c "65 133 8"
 
+#######################################################################
+
+# No spaces after semicolons in for(;;).
 cat <<EOF >test/semicolon2.c
-// No spaces after semicolons in for(;;).
 #include <stdio.h>
 
 int
@@ -325,4 +376,8 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size semicolon2.c "67 126 8"
+test_size semicolon2.c "67 127 8"
+
+#######################################################################
+# END
+#######################################################################

@@ -236,6 +236,12 @@ rule_count(FILE *fp)
 				(void) fprintf(stderr, "~~COMMENT_EOL\n");
 			}
 			is_comment = COMMENT_EOL;
+
+			/* Consume next_ch. */
+			(void) fputc(ch, stdout);
+			ch = fgetc(fp);
+			gross_count++;
+			net_count++;
 		}
 
 		/* Start of comment block? */
@@ -244,6 +250,12 @@ rule_count(FILE *fp)
 				(void) fprintf(stderr, "~~COMMENT_BLOCK\n");
 			}
 			is_comment = COMMENT_BLOCK;
+
+			/* Consume next_ch. */
+			(void) fputc(ch, stdout);
+			ch = fgetc(fp);
+			gross_count++;
+			net_count++;
 		}
 
 		/* Open single or double quote? */
@@ -292,11 +304,17 @@ rule_count(FILE *fp)
 
 		/* Ignore all whitespace. */
 		if (isspace(ch)) {
+			if (debug > 2) {
+				(void) fprintf(stderr, "~~ignore whitespace %#02x\n", ch);
+			}
 			continue;
 		}
 
 		/* Ignore begin/end block and end of statement. */
 		if (strchr("{;}", ch) != NULL && (isspace(next_ch) || next_ch == EOF)) {
+			if (debug > 2) {
+				(void) fprintf(stderr, "~~ignore %c\n", ch);
+			}
 			continue;
 		}
 
