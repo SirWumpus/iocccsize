@@ -179,8 +179,8 @@ static void
 rule_count(FILE *fp)
 {
 	char word[WORD_BUFFER_SIZE];
-	size_t gross_count = 0, net_count = 0, keywords = 0;
-	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT, wordi = 0;
+	size_t gross_count = 0, net_count = 0, keywords = 0, wordi = 0;
+	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT;
 
 	while ((ch = read_ch(fp)) != EOF) {
 		/* Future gazing. */
