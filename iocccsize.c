@@ -26,6 +26,7 @@
  */
 
 #define DIGRAPHS
+#define TRIGRAPHS
 #define TELL_UNOBSERVANT_PROGRAMMER
 
 #include <err.h>
@@ -186,6 +187,32 @@ rule_count(FILE *fp)
 		/* Future gazing. */
 		next_ch = read_ch(fp);
 
+#ifdef TRIGRAPHS
+		if (ch == '?' && next_ch == '?') {
+			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
+			const char *t;
+			static const char trigraphs[] = "=#([)]'^<{!|>}-~/\\";
+
+			ch = fgetc(fp);
+			for (t = trigraphs; *t != '\0'; t += 2) {
+				if (ch == t[0]) {
+					/* Mapped trigraphs count as 1 byte. */
+					next_ch = fgetc(fp);
+					gross_count += 2;
+					ch = t[1];
+					break;
+				}
+			}
+
+			/* Unknown trigraph, push back the 3rd character. */
+			if (*t == '\0') {
+				if (ch != EOF && ungetc(ch, fp) == EOF) {
+					errx(1, "ungetc error: bad \?\?%c trigraph", ch);
+				}
+				ch = '?';
+			}
+		}
+#endif
 		if (ch == '\\' && next_ch == '\n') {
 			/* ISO C11 section 5.1.1.2 Translation Phases
 			 * point 2 discards backslash newlines.
@@ -194,7 +221,13 @@ rule_count(FILE *fp)
 			continue;
 		}
 
-		(void) ungetc(next_ch, fp);
+		if (next_ch != EOF && ungetc(next_ch, fp) == EOF) {
+			/* ISO C ungetc() guarantees one character (byte) pushback.
+			 * How does that relate to UTF8 and wide-character library
+			 * handling?  An invalid trigraph results in 2x ungetc().
+			 */
+			errx(1, "ungetc error: @SirWumpus goofed");
+		}
 
 		/* Within quoted string? */
 		if (quote != 0) {
@@ -268,7 +301,7 @@ rule_count(FILE *fp)
 #ifdef DIGRAPHS
 		/* ISO C11 section 6.4.6 Punctuators, digraphs handled during
 		 * tokenization, but map here and count as 1 byte, like their
-		  *ASCII counter parts.
+		 * ASCII counter parts.
 		 */
 		if (is_comment == NO_COMMENT && quote == 0) {
 			const char *d;

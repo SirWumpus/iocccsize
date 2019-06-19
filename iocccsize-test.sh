@@ -169,7 +169,6 @@ test_size quote2.c "14 22 1"
 
 #######################################################################
 
-# 2019-01-10 Currently no special size exception for digraphs.
 cat <<EOF >test/digraph.c
 char str<::> = "'xor'";
 EOF
@@ -177,11 +176,10 @@ test_size digraph.c "14 24 1"
 
 #######################################################################
 
-# 2019-01-10 Currently no special size exception for trigraphs.
 cat <<EOF >test/trigraph0.c
 char str??(??) = "'xor'";
 EOF
-test_size trigraph0.c "18 26 1"
+test_size trigraph0.c "14 26 1"
 
 #######################################################################
 
@@ -190,9 +188,7 @@ cat <<EOF >test/trigraph1.c
 // Will the next line be executed????????????????/
 a++;
 EOF
-# gcc with -fpreprocessed will not process trigraphs, but will remove
-# comments, which is why this test of ??/ plus newline does not work.
-#OFF test_size trigraph1.c "0 0 0"
+test_size trigraph1.c "44 56 0"
 
 #######################################################################
 
@@ -202,9 +198,7 @@ cat <<EOF >test/trigraph2.c
 * A comment *??/
 /
 EOF
-# gcc with -fpreprocessed will not process trigraphs, but will remove
-# comments, which is why this test of ??/ plus newline does not work.
-#OFF test_size trigraph2.c "0 0 0"
+test_size trigraph2.c "12 24 0"
 
 #######################################################################
 
@@ -244,7 +238,8 @@ test_size hello.c "58 101 6"
 
 #######################################################################
 
-# Digraph for #include and curlys.
+# Digraph for #include and curlys.  Digraphs are tokens and are not
+# translated like trigraphs.
 cat <<EOF >test/hello_digraph.c
 %:    include <stdio.h>
 
@@ -259,7 +254,8 @@ test_size hello_digraph.c "60 108 6"
 
 #######################################################################
 
-# Trigraph for #include and curlys.
+# Trigraph for #include and curlys.  Trigraphs are translated, unlike
+# digraphs which are tokens.
 cat <<EOF >test/hello_trigraph.c
 ??=    include <stdio.h>
 
@@ -270,8 +266,7 @@ main(int argc, char **argv)
 	return 0;
 ??>
 EOF
-# gcc with -fpreprocessed will not process trigraphs.
-#OFF test_size hello_trigraph.c "60 104 6"
+test_size hello_trigraph.c "58 111 6"
 
 #######################################################################
 
