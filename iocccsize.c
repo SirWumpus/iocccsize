@@ -430,11 +430,9 @@ rule_count(FILE *fp)
 	if (debug == 0) {
 		if (MAX_SIZE < gross_count) {
 			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
-			(void) fprintf(stderr, "Warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
 		}
 		if (MAX_COUNT < net_count) {
 			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
-			(void) fprintf(stderr, "Warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
 		}
 	}
 
