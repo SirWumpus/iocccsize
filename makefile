@@ -34,7 +34,7 @@ clean:
 	-rm -f ${PROJ}.i ${PROJ}$O *.stackdump *.core 2>/dev/null
 
 distclean: clean
-	-rm -fr ${PROJ}$E test a.out 2>/dev/null
+	-rm -fr ${PROJ}$E test a.out VERSION 2>/dev/null
 
 test: build
 	./${PROJ}-test.sh -v
@@ -42,3 +42,5 @@ test: build
 version:
 	git describe --tags --abbrev=0 >VERSION
 
+tar:
+	tar -zcf ../iocccsize-$$(git describe --tags).tar.gz iocccsize-test.sh iocccsize.c makefile
