@@ -82,6 +82,7 @@
 #define MAX_COUNT		2053	/* IOCCC Rule 2b */
 #define STRLEN(s)		(sizeof (s)-1)
 
+#define NO_STRING		0
 #define NO_COMMENT		0
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
@@ -235,7 +236,10 @@ rule_count(FILE *fp)
 {
 	char word[WORD_BUFFER_SIZE];
 	size_t gross_count = 0, net_count = 0, keywords = 0, wordi = 0;
-	int ch, next_ch, quote = 0, escape = 0, is_comment = NO_COMMENT;
+	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
+
+/* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
+#define IS_CODE	(quote == is_comment)
 
 	while ((ch = read_ch(fp)) != EOF) {
 		/* Future gazing. */
@@ -284,7 +288,7 @@ rule_count(FILE *fp)
 		}
 
 		/* Within quoted string? */
-		if (quote != 0) {
+		if (quote != NO_STRING) {
 			/* Escape _this_ character. */
 			if (escape) {
 				escape = 0;
@@ -297,7 +301,7 @@ rule_count(FILE *fp)
 
 			/* Close matching quote? */
 			else if (ch == quote) {
-				quote = 0;
+				quote = NO_STRING;
 			}
 		}
 
@@ -357,7 +361,7 @@ rule_count(FILE *fp)
 		 * tokenization, but map here and count as 1 byte, like their
 		 * ASCII counter parts.
 		 */
-		if (is_comment == NO_COMMENT && quote == 0) {
+		if (IS_CODE) {
 			const char *d;
 			static const char digraphs[] = "[<:]:>{<%}%>#%:";
 			for (d = digraphs; *d != '\0'; d += 3) {
@@ -406,8 +410,9 @@ rule_count(FILE *fp)
 		}
 
 		/* Collect next word not in a string or comment. */
-		if (quote == is_comment && (isalnum(ch) || ch == '_' || ch == '#')) {
+		if (IS_CODE && (isalnum(ch) || ch == '_' || ch == '#')) {
 			if (sizeof (word) <= wordi) {
+				warnx("word buffer overflow");
 				wordi = 0;
 			}
 			word[wordi++] = (char) ch;
@@ -455,7 +460,7 @@ main(int argc, char **argv)
 			break;
 
 		case '6': /* You're a RTFS master!  Congrats. */
-			errx(6, "There is NO... Rule 6!\nI'm not a number!\nI'm a free(void *man)!\n");
+			errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!");
 
 		case 'h':
 		default:
