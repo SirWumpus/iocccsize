@@ -18,6 +18,8 @@ CFLAGS89	:= -g -std=c89 -Wall -Wextra -Wno-char-subscripts -pedantic
 CPPFLAGS	:=
 LIBS		:=
 
+VERSION		:= $$(git describe --tags)
+
 .c.i:
 	${CC} -E ${CFLAGS} ${CPPFLAGS} $*.c >$*.i
 
@@ -42,5 +44,5 @@ test: build
 version:
 	git describe --tags --abbrev=0 >VERSION
 
-tar:
-	tar -zcf ../iocccsize-$$(git describe --tags).tar.gz iocccsize-test.sh iocccsize.c makefile
+tar: version
+	git archive --format=tar.gz --prefix=${PROJ}-${VERSION}/ ${VERSION} >../${PROJ}-${VERSION}.tar.gz
