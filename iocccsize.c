@@ -76,6 +76,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define WORD_BUFFER_SIZE	64
 #define MAX_SIZE		4096	/* IOCCC Rule 2a */
@@ -231,12 +232,12 @@ read_ch(FILE *fp)
 	return ch;
 }
 
-static void
+static int
 rule_count(FILE *fp)
 {
 	char word[WORD_BUFFER_SIZE];
 	size_t gross_count = 0, net_count = 0, keywords = 0, wordi = 0;
-	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
+	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT, rc = EXIT_SUCCESS;
 
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
 #define IS_CODE	(quote == is_comment)
@@ -432,22 +433,28 @@ rule_count(FILE *fp)
 	 * hopes it will reduce the number of entries that violate the IOCCC
 	 * size rules.
 	 */
-	if (debug == 0) {
-		if (MAX_SIZE < gross_count) {
+	if (MAX_SIZE < gross_count) {
+		if (debug == 0) {
 			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
 		}
-		if (MAX_COUNT < net_count) {
+		rc = EXIT_FAILURE;
+	}
+	if (MAX_COUNT < net_count) {
+		if (debug == 0) {
 			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
 		}
+		rc = EXIT_FAILURE;
 	}
 
 	(void) fprintf(stderr, out_fmt, net_count, gross_count, keywords);
+
+	return rc;
 }
 
 int
 main(int argc, char **argv)
 {
-	int ch;
+	int ch, rc;
 
 	while ((ch = getopt(argc, argv, "6ihv")) != -1) {
 		switch (ch) {
@@ -471,10 +478,10 @@ main(int argc, char **argv)
 	(void) setvbuf(stdin, NULL, _IOLBF, 0);
 
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
-	rule_count(stdin);
+	rc = rule_count(stdin);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	return 0;
+	return rc;
 }
