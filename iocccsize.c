@@ -8,6 +8,7 @@
  *
  * SYNOPSIS
  *
+ * 	iocccsize [-ihv] file
  * 	iocccsize [-ihv] < input
  *
  *	-i	ignored for backward compatibility
@@ -89,7 +90,8 @@
 #define COMMENT_BLOCK		2
 
 static char usage[] =
-"usage: iocccsize [-ihv] < prog.c\n"
+"usage: iocccsize [-ihv] prog.c\n"
+"       iocccsize [-ihv] < prog.c\n"
 "\n"
 "-i\t\tignored for backward compatibility\n"
 "-h\t\tprint usage message in stderr and exit\n"
@@ -471,8 +473,20 @@ main(int argc, char **argv)
 
 		case 'h':
 		default:
-			errx(2, "%s", usage);
+			fprintf(stderr, "%s", usage);
+			return 2;
 		}
+	}
+
+	if (optind + 1 == argc) {
+		/* Redirect stdin to file path argument. */
+		if (freopen(argv[optind], "r", stdin) == NULL) {
+			err(3, "%s", argv[optind]);
+		}
+	} else if (optind != argc) {
+		/* Too many arguments. */
+		fprintf(stderr, "%s", usage);
+		return 2;
 	}
 
 	(void) setvbuf(stdin, NULL, _IOLBF, 0);
