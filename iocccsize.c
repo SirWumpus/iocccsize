@@ -3,17 +3,18 @@
  *
  *	"You are not expected to understand this" :-)
  *
- *	Public Domain 1992, 2015, 2019 by Anthony Howe.  All rights released.
- *	With IOCCC minor mods in 2019 by chongo (Landon Curt Noll) ^oo^
+ *	Public Domain 1992, 2015, 2018, 2019, 2021 by Anthony Howe.  All rights released.
+ *	With IOCCC mods in 2019-2021 by chongo (Landon Curt Noll) ^oo^
  *
  * SYNOPSIS
  *
- * 	iocccsize [-ihv] file
- * 	iocccsize [-ihv] < input
+ * 	iocccsize [-ihvV] prog.c
+ * 	iocccsize [-ihvV] < prog.c
  *
  *	-i	ignored for backward compatibility
  *	-h	print usage message in stderr and exit
  *	-v	turn on some debugging to stderr; -vv or -vvv for more
+ *	-V	print version and exit
  *
  *	The source is written to stdout, with possible translations ie. trigraphs.
  *	The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),
@@ -79,6 +80,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifndef VERSION
+#define VERSION "28.3 2021-12-29"	/* use format: major.minor YYYY-MM-DD */
+#endif
+
 #define WORD_BUFFER_SIZE	64
 #define MAX_SIZE		4096	/* IOCCC Rule 2a */
 #define MAX_COUNT		2053	/* IOCCC Rule 2b */
@@ -90,12 +95,13 @@
 #define COMMENT_BLOCK		2
 
 static char usage[] =
-"usage: iocccsize [-ihv] prog.c\n"
-"       iocccsize [-ihv] < prog.c\n"
+"usage: iocccsize [-ihvV] prog.c\n"
+"       iocccsize [-ihvV] < prog.c\n"
 "\n"
 "-i\t\tignored for backward compatibility\n"
 "-h\t\tprint usage message in stderr and exit\n"
 "-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
+"-V\t\tprint version and exit\n"
 "\n"
 "The source is written to stdout, with possible translations ie. trigraphs.\n"
 "The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
@@ -458,7 +464,7 @@ main(int argc, char **argv)
 {
 	int ch, rc;
 
-	while ((ch = getopt(argc, argv, "6ihv")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihvV")) != -1) {
 		switch (ch) {
 		case 'i': /* ignored for backward compatibility */
 			break;
@@ -467,6 +473,10 @@ main(int argc, char **argv)
 			debug++;
 			out_fmt = "%lu %lu %lu\n";
 			break;
+
+		case 'V':
+			printf("%s\n", VERSION);
+			exit(0);
 
 		case '6': /* You're a RTFS master!  Congrats. */
 			errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!");
