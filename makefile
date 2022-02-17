@@ -23,6 +23,9 @@ VERSION		:= $$(git describe --tags)
 .c.i:
 	${CC} -E ${CFLAGS} ${CPPFLAGS} $*.c >$*.i
 
+.c$O:
+	${CC} ${CFLAGS} ${CPPFLAGS} -c $*.c
+
 .c$E:
 	${CC} ${CFLAGS} ${CPPFLAGS} -o$*$E $*.c
 
@@ -46,3 +49,6 @@ version:
 
 tar: version
 	git archive --format=tar.gz --prefix=${PROJ}-${VERSION}/ ${VERSION} >../${PROJ}-${VERSION}.tar.gz
+
+${PROJ}$E: ${PROJ}.c
+	${CC} ${CFLAGS} ${CPPFLAGS} -DWITH_MAIN -o$*$E $*.c

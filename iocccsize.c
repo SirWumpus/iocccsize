@@ -73,20 +73,15 @@
  *      This is close.
  */
 
-#include <err.h>
 #include <ctype.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifndef VERSION
-#define VERSION "28.3 2021-12-29"	/* use format: major.minor YYYY-MM-DD */
-#endif
+#include "err.h"
+#include "iocccsize.h"
 
-#define WORD_BUFFER_SIZE	64
-#define MAX_SIZE		4096	/* IOCCC Rule 2a */
-#define MAX_COUNT		2053	/* IOCCC Rule 2b */
 #define STRLEN(s)		(sizeof (s)-1)
 
 #define NO_STRING		0
@@ -94,23 +89,7 @@
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
 
-static char usage[] =
-"usage: iocccsize [-ihvV] prog.c\n"
-"       iocccsize [-ihvV] < prog.c\n"
-"\n"
-"-i\t\tignored for backward compatibility\n"
-"-h\t\tprint usage message in stderr and exit\n"
-"-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
-"-V\t\tprint version and exit\n"
-"\n"
-"The source is written to stdout, with possible translations ie. trigraphs.\n"
-"The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
-"gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write\n"
-"more tool diagnostics.\n"
-;
-
 static int debug;
-static char *out_fmt = "%lu\n";
 
 /*
  * C reserved words, plus a few #preprocessor tokens, that count as 1
@@ -240,19 +219,20 @@ read_ch(FILE *fp)
 	return ch;
 }
 
-static int
-rule_count(FILE *fp)
+RuleCount
+rule_count(FILE *fp_in, FILE *fp_out)
 {
+	size_t wordi = 0;
 	char word[WORD_BUFFER_SIZE];
-	size_t gross_count = 0, net_count = 0, keywords = 0, wordi = 0;
-	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT, rc = EXIT_SUCCESS;
+	RuleCount counts = {EXIT_SUCCESS, 0, 0, 0};
+	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
 
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
 #define IS_CODE	(quote == is_comment)
 
-	while ((ch = read_ch(fp)) != EOF) {
+	while ((ch = read_ch(fp_in)) != EOF) {
 		/* Future gazing. */
-		next_ch = read_ch(fp);
+		next_ch = read_ch(fp_in);
 
 #ifdef TRIGRAPHS
 		if (ch == '?' && next_ch == '?') {
@@ -260,12 +240,12 @@ rule_count(FILE *fp)
 			const char *t;
 			static const char trigraphs[] = "=#([)]'^<{!|>}-~/\\";
 
-			ch = fgetc(fp);
+			ch = fgetc(fp_in);
 			for (t = trigraphs; *t != '\0'; t += 2) {
 				if (ch == t[0]) {
 					/* Mapped trigraphs count as 1 byte. */
-					next_ch = fgetc(fp);
-					gross_count += 2;
+					next_ch = fgetc(fp_in);
+					counts.gross += 2;
 					ch = t[1];
 					break;
 				}
@@ -273,7 +253,7 @@ rule_count(FILE *fp)
 
 			/* Unknown trigraph, push back the 3rd character. */
 			if (*t == '\0') {
-				if (ch != EOF && ungetc(ch, fp) == EOF) {
+				if (ch != EOF && ungetc(ch, fp_in) == EOF) {
 					errx(1, "ungetc error: bad \?\?%c trigraph", ch);
 				}
 				ch = '?';
@@ -284,11 +264,11 @@ rule_count(FILE *fp)
 			/* ISO C11 section 5.1.1.2 Translation Phases
 			 * point 2 discards backslash newlines.
 			 */
-			gross_count += 2;
+			counts.gross += 2;
 			continue;
 		}
 
-		if (next_ch != EOF && ungetc(next_ch, fp) == EOF) {
+		if (next_ch != EOF && ungetc(next_ch, fp_in) == EOF) {
 			/* ISO C ungetc() guarantees one character (byte) pushback.
 			 * How does that relate to UTF8 and wide-character library
 			 * handling?  An invalid trigraph results in 2x ungetc().
@@ -338,10 +318,12 @@ rule_count(FILE *fp)
 			is_comment = COMMENT_EOL;
 
 			/* Consume next_ch. */
-			(void) fputc(ch, stdout);
-			ch = fgetc(fp);
-			gross_count++;
-			net_count++;
+			if (fp_out != NULL) {
+				(void) fputc(ch, fp_out);
+			}
+			ch = fgetc(fp_in);
+			counts.gross++;
+			counts.net++;
 		}
 
 		/* Start of comment block? */
@@ -352,10 +334,12 @@ rule_count(FILE *fp)
 			is_comment = COMMENT_BLOCK;
 
 			/* Consume next_ch. */
-			(void) fputc(ch, stdout);
-			ch = fgetc(fp);
-			gross_count++;
-			net_count++;
+			if (fp_out != NULL) {
+				(void) fputc(ch, fp_out);
+			}
+			ch = fgetc(fp_in);
+			counts.gross++;
+			counts.net++;
 		}
 
 		/* Open single or double quote? */
@@ -363,7 +347,9 @@ rule_count(FILE *fp)
 			quote = ch;
 		}
 
-		(void) fputc(ch, stdout);
+		if (fp_out != NULL) {
+			(void) fputc(ch, fp_out);
+		}
 
 #ifdef DIGRAPHS
 		/* ISO C11 section 6.4.6 Punctuators, digraphs handled during
@@ -375,9 +361,11 @@ rule_count(FILE *fp)
 			static const char digraphs[] = "[<:]:>{<%}%>#%:";
 			for (d = digraphs; *d != '\0'; d += 3) {
 				if (ch == d[1] && next_ch == d[2]) {
-					(void) fputc(next_ch, stdout);
-					(void) fgetc(fp);
-					gross_count++;
+					if (fp_out != NULL) {
+						(void) fputc(next_ch, fp_out);
+					}
+					(void) fgetc(fp_in);
+					counts.gross++;
 					ch = d[0];
 					break;
 				}
@@ -385,7 +373,7 @@ rule_count(FILE *fp)
 		}
 #endif
 		/* Sanity check against file size and wc(1) byte count. */
-		gross_count++;
+		counts.gross++;
 
 		/* End of possible keyword?  Care with #word as there can
 		 * be whitespace or comments between # and word.
@@ -393,10 +381,10 @@ rule_count(FILE *fp)
 		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
 			if (find_member(cwords, word) != NULL) {
 				/* Count keyword as 1. */
-				net_count = net_count - wordi + 1;
-				keywords++;
+				counts.net = counts.net - wordi + 1;
+				counts.keywords++;
 				if (debug > 1) {
-					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", keywords, word);
+					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", counts.keywords, word);
 				}
 			}
 			word[wordi = 0] = '\0';
@@ -428,7 +416,7 @@ rule_count(FILE *fp)
 			word[wordi] = '\0';
 		}
 
-		net_count++;
+		counts.net++;
 	}
 
 	/*
@@ -441,28 +429,46 @@ rule_count(FILE *fp)
 	 * hopes it will reduce the number of entries that violate the IOCCC
 	 * size rules.
 	 */
-	if (MAX_SIZE < gross_count) {
+	if (MAX_SIZE < counts.gross) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", gross_count, MAX_SIZE);
+			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, MAX_SIZE);
 		}
-		rc = EXIT_FAILURE;
+		counts.rc = EXIT_FAILURE;
 	}
-	if (MAX_COUNT < net_count) {
+	if (MAX_COUNT < counts.net) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", net_count, MAX_COUNT);
+			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, MAX_COUNT);
 		}
-		rc = EXIT_FAILURE;
+		counts.rc = EXIT_FAILURE;
 	}
 
-	(void) fprintf(stderr, out_fmt, net_count, gross_count, keywords);
-
-	return rc;
+	return counts;
 }
+
+#ifdef WITH_MAIN
+
+static char *out_fmt = "%lu\n";
+
+static char usage[] =
+"usage: iocccsize [-ihvV] prog.c\n"
+"       iocccsize [-ihvV] < prog.c\n"
+"\n"
+"-i\t\tignored for backward compatibility\n"
+"-h\t\tprint usage message in stderr and exit\n"
+"-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
+"-V\t\tprint version and exit\n"
+"\n"
+"The source is written to stdout, with possible translations ie. trigraphs.\n"
+"The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
+"gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write\n"
+"more tool diagnostics.\n"
+;
 
 int
 main(int argc, char **argv)
 {
-	int ch, rc;
+	int ch;
+	RuleCount counts;
 
 	while ((ch = getopt(argc, argv, "6ihvV")) != -1) {
 		switch (ch) {
@@ -502,10 +508,14 @@ main(int argc, char **argv)
 	(void) setvbuf(stdin, NULL, _IOLBF, 0);
 
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
-	rc = rule_count(stdin);
+	counts = rule_count(stdin, stdout);
+
+	(void) fprintf(stderr, out_fmt, counts.net, counts.gross, counts.keywords);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	return rc;
+	return counts.rc;
 }
+
+#endif /* WITH_MAIN */
