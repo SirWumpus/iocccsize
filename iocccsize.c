@@ -46,6 +46,23 @@
 #define DIGRAPHS
 #define TRIGRAPHS
 
+/* ISO C11 section 5.2.1 defines source character set, specifically:
+ *
+ *	The representation of each member of the source and execution
+ *	basic character sets shall fit in a byte.
+ *
+ * Note however that string literals and comments could contain non-ASCII
+ * (consider non-English developers writing native langauge comments):
+ *
+ *	If any other characters are encountered in a source file (except
+ *	in an identifier, a character constant, a string literal, a header
+ *	name, a comment, or a preprocessing token that is never converted
+ *	to a token), the behavior is undefined.
+ *
+ * Probably best to leave as-is, count them, and let the compiler sort it.
+ */
+#undef ASCII_ONLY
+
 /*
  * IOCCC Judge's remarks:
  *
@@ -221,18 +238,22 @@ rule_count(FILE *fp_in, FILE *fp_out)
 			counts.gross++;
 			continue;
 		}
+#ifdef ASCII_ONLY
 		if (ch == '\0' || 128 <= ch) {
 			errx(1, "NUL or non-ASCII characters");
 		}
+#endif
 
 		/* Future gazing. */
 		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
 			counts.gross++;
 		}
+#ifdef ASCII_ONLY
 		if (next_ch == '\0' || 128 <= next_ch) {
 			errx(1, "NUL or non-ASCII characters");
 		}
+#endif
 
 #ifdef TRIGRAPHS
 		if (ch == '?' && next_ch == '?') {
