@@ -30,7 +30,6 @@ extern "C" {
 #endif
 
 typedef struct {
-	int rc;			/* EXIT_* status */
 	size_t net;
 	size_t gross;
 	size_t keywords;
@@ -45,8 +44,7 @@ typedef struct {
  *	Can be NULL if no output is to be written.
  *
  * @return
- *	Return a RuleCount structure.  On success .rc = EXIT_SUCCESS,
- *	otherwise EXIT_FAILURE.
+ *	Return a RuleCount structure.
  */
 extern RuleCount rule_count(FILE *fp_in, FILE *fp_out);
 

@@ -224,7 +224,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 {
 	size_t wordi = 0;
 	char word[WORD_BUFFER_SIZE];
-	RuleCount counts = {EXIT_SUCCESS, 0, 0, 0};
+	RuleCount counts = { 0, 0, 0 };
 	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
 
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
@@ -419,29 +419,6 @@ rule_count(FILE *fp_in, FILE *fp_out)
 		counts.net++;
 	}
 
-	/*
-	 * The original author was not entirely in agreement with printing
-	 * these warnings, since he believes that its the programmer's job to
-	 * be cognisant of the rules, guidelines, and the state of their work.
-	 *
-	 * The IOCCC judges observe that enough IOCCC submitters are not so
-	 * cognizant (cognisant) and so make these warnings manditory in the
-	 * hopes it will reduce the number of entries that violate the IOCCC
-	 * size rules.
-	 */
-	if (MAX_SIZE < counts.gross) {
-		if (debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, MAX_SIZE);
-		}
-		counts.rc = EXIT_FAILURE;
-	}
-	if (MAX_COUNT < counts.net) {
-		if (debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, MAX_COUNT);
-		}
-		counts.rc = EXIT_FAILURE;
-	}
-
 	return counts;
 }
 
@@ -467,8 +444,8 @@ static char usage[] =
 int
 main(int argc, char **argv)
 {
-	int ch;
 	RuleCount counts;
+	int ch, rc = EXIT_SUCCESS;
 
 	while ((ch = getopt(argc, argv, "6ihvV")) != -1) {
 		switch (ch) {
@@ -510,12 +487,35 @@ main(int argc, char **argv)
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
 	counts = rule_count(stdin, stdout);
 
+	/*
+	 * The original author was not entirely in agreement with printing
+	 * these warnings, since he believes that its the programmer's job to
+	 * be cognisant of the rules, guidelines, and the state of their work.
+	 *
+	 * The IOCCC judges observe that enough IOCCC submitters are not so
+	 * cognizant (cognisant) and so make these warnings manditory in the
+	 * hopes it will reduce the number of entries that violate the IOCCC
+	 * size rules.
+	 */
+	if (MAX_SIZE < counts.gross) {
+		if (debug == 0) {
+			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, MAX_SIZE);
+		}
+		rc = EXIT_FAILURE;
+	}
+	if (MAX_COUNT < counts.net) {
+		if (debug == 0) {
+			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, MAX_COUNT);
+		}
+		rc = EXIT_FAILURE;
+	}
+
 	(void) fprintf(stderr, out_fmt, counts.net, counts.gross, counts.keywords);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	return counts.rc;
+	return rc;
 }
 
 #endif /* WITH_MAIN */
