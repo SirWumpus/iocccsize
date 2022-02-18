@@ -204,21 +204,6 @@ find_member(Word *table, const char *string)
 	return NULL;
 }
 
-static int
-read_ch(FILE *fp)
-{
-	int ch;
-
-	while ((ch = fgetc(fp)) != EOF && ch == '\r') {
-		/* Discard bare CR and those part of CRLF. */
-	}
-	if (ch == '\0' || 128 <= ch) {
-		errx(1, "NUL or non-ASCII characters");
-	}
-
-	return ch;
-}
-
 RuleCount
 rule_count(FILE *fp_in, FILE *fp_out)
 {
@@ -230,9 +215,24 @@ rule_count(FILE *fp_in, FILE *fp_out)
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
 #define IS_CODE	(quote == is_comment)
 
-	while ((ch = read_ch(fp_in)) != EOF) {
+	while ((ch = fgetc(fp_in)) != EOF) {
+		if (ch == '\r') {
+			/* Discard bare CR and those part of CRLF. */
+			counts.gross++;
+			continue;
+		}
+		if (ch == '\0' || 128 <= ch) {
+			errx(1, "NUL or non-ASCII characters");
+		}
+
 		/* Future gazing. */
-		next_ch = read_ch(fp_in);
+		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
+			/* Discard bare CR and those part of CRLF. */
+			counts.gross++;
+		}
+		if (next_ch == '\0' || 128 <= next_ch) {
+			errx(1, "NUL or non-ASCII characters");
+		}
 
 #ifdef TRIGRAPHS
 		if (ch == '?' && next_ch == '?') {
