@@ -1,4 +1,5 @@
 VERSION
 iocccsize
 *.tws
-test/
+*.dSYM
+test-iocccsize/

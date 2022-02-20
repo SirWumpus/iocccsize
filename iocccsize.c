@@ -8,31 +8,32 @@
  *
  * SYNOPSIS
  *
- * 	iocccsize [-ihvV] prog.c
- * 	iocccsize [-ihvV] < prog.c
+ *	usage: iocccsize [-h] [-i] [-v level] [-V] prog.c
+ *	usage: iocccsize [-h] [-i] [-v level] [-V] < prog.c
  *
- *	-i	ignored for backward compatibility
- *	-h	print usage message in stderr and exit
- *	-v	turn on some debugging to stderr; -vv or -vvv for more
- *	-V	print version and exit
+ *	-i		ignored for backward compatibility
+ *	-h		print usage message in stderr and exit 2
+ *	-v level	set debug level (def: none)
+ *	-V		print version and exit 3
  *
- *	The source is written to stdout, with possible translations ie. trigraphs.
- *	The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),
- *	gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write
- *	more tool diagnostics.
+ *	Exit codes:
+ *		0 - source code is within Rule 2a and Rule 2b limits
+ *		1 - source code larger than Rule 2a and/or Rule 2b limits
+ *		2 - -h used and help printed
+ *		3 - -V used and version printed
+ *		4 - invalid command line
+ *		>= 5 - some internal error occurred
  *
- * DESCRIPION
+ * DESCRIPTION
  *
- *	Reading a C source file from standard input, apply the IOCCC
- *	source size rules as explained in the Guidelines.  The source
- *	code is passed through on standard output.  The source's net
- *	length is written to standard error; with -v option the net
- *	length, gross length, and matched keyword count are written.
+ *	By default,the Rule 2b count is written to stdout.
+ *	If the debug level is > 0, then the Rule 2a, Rule 2b,
+ *	and keyword count is written to stdout instead.
  *
  *	The entry's gross size in bytes must be less than equal to 4096
  *	bytes in length.
  *
- *	The entry's net size in bytes must be less than equal to 2053
+ *	The entry's net size in bytes must be less than equal to 2503
  *	bytes (first prime after 2048).  The net size is computed as
  *	follows:
  *
@@ -42,26 +43,6 @@
  *	';', '{' or '}' followed by ASCII whitespace, and excluding any
  *	';', '{' or '}' octet immediately before the end of file.
  */
-
-#define DIGRAPHS
-#define TRIGRAPHS
-
-/* ISO C11 section 5.2.1 defines source character set, specifically:
- *
- *	The representation of each member of the source and execution
- *	basic character sets shall fit in a byte.
- *
- * Note however that string literals and comments could contain non-ASCII
- * (consider non-English developers writing native langauge comments):
- *
- *	If any other characters are encountered in a source file (except
- *	in an identifier, a character constant, a string literal, a header
- *	name, a comment, or a preprocessing token that is never converted
- *	to a token), the behavior is undefined.
- *
- * Probably best to leave as-is, count them, and let the compiler sort it.
- */
-#undef ASCII_ONLY
 
 /*
  * IOCCC Judge's remarks:
@@ -74,469 +55,147 @@
  * (Obfuscated Coding Determination) into this code!
  */
 
-/*
- * HINT: The algorithm implemented by this code may or not be obfuscated.
- *       The algorithm may not or may appear to be obfuscated.
- *
- * In particular:
- *
- *      We did not invent the algorithm.
- *      The algorithm consistently finds Obfuscation.
- *      The algorithm killed Obfuscation.
- *      The algorithm is banned in C.
- *      The algorithm is from Bell Labs in Jersey.
- *      The algorithm constantly finds Obfuscation.
- *      This is not the algorithm.
- *      This is close.
- */
-
 #include <ctype.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "err.h"
+#include "iocccsize_err.h"
+#if defined(MKIOCCCENTRY_USE)
+#include "limit_ioccc.h"
+#endif /* MKIOCCCENTRY_USE */
 #include "iocccsize.h"
 
-#define STRLEN(s)		(sizeof (s)-1)
-
-#define NO_STRING		0
-#define NO_COMMENT		0
-#define COMMENT_EOL		1
-#define COMMENT_BLOCK		2
-
-static int debug;
-
 /*
- * C reserved words, plus a few #preprocessor tokens, that count as 1
- *
- * NOTE: For a good list of reserved words in C, see:
- *
- *	http://www.bezem.de/pdf/ReservedWordsInC.pdf
- *
- * by Johan Bezem of JB Enterprises:
- *
- *	See http://www.bezem.de/en/
+ * usage message, split into strings that are small enough to be supported by C standards
  */
-typedef struct {
-	size_t length;
-	const char *word;
-} Word;
-
-static Word cwords[] = {
-	/* Yes Virginia, we left #define off the list on purpose! */
-	{ STRLEN("#elif"), "#elif" } ,
-	{ STRLEN("#else"), "#else" } ,
-	{ STRLEN("#endif"), "#endif" } ,
-	{ STRLEN("#error"), "#error" } ,
-	{ STRLEN("#ident"), "#ident" } ,
-	{ STRLEN("#if"), "#if" } ,
-	{ STRLEN("#ifdef"), "#ifdef" } ,
-	{ STRLEN("#ifndef"), "#ifndef" } ,
-	{ STRLEN("#include"), "#include" } ,
-	{ STRLEN("#line"), "#line" } ,
-	{ STRLEN("#pragma"), "#pragma" } ,
-	{ STRLEN("#sccs"), "#sccs" } ,
-	{ STRLEN("#warning"), "#warning" } ,
-
-	{ STRLEN("_Alignas"), "_Alignas" } ,
-	{ STRLEN("_Alignof"), "_Alignof" } ,
-	{ STRLEN("_Atomic"), "_Atomic" } ,
-	{ STRLEN("_Bool"), "_Bool" } ,
-	{ STRLEN("_Complex"), "_Complex" } ,
-	{ STRLEN("_Generic"), "_Generic" } ,
-	{ STRLEN("_Imaginary"), "_Imaginary" } ,
-	{ STRLEN("_Noreturn"), "_Noreturn" } ,
-	{ STRLEN("_Pragma"), "_Pragma" } ,
-	{ STRLEN("_Static_assert"), "_Static_assert" } ,
-	{ STRLEN("_Thread_local"), "_Thread_local" } ,
-
-	{ STRLEN("alignas"), "alignas" } ,
-	{ STRLEN("alignof"), "alignof" } ,
-	{ STRLEN("and"), "and" } ,
-	{ STRLEN("and_eq"), "and_eq" } ,
-	{ STRLEN("auto"), "auto" } ,
-	{ STRLEN("bitand"), "bitand" } ,
-	{ STRLEN("bitor"), "bitor" } ,
-	{ STRLEN("bool"), "bool" } ,
-	{ STRLEN("break"), "break" } ,
-	{ STRLEN("case"), "case" } ,
-	{ STRLEN("char"), "char" } ,
-	{ STRLEN("compl"), "compl" } ,
-	{ STRLEN("const"), "const" } ,
-	{ STRLEN("continue"), "continue" } ,
-	{ STRLEN("default"), "default" } ,
-	{ STRLEN("do"), "do" } ,
-	{ STRLEN("double"), "double" } ,
-	{ STRLEN("else"), "else" } ,
-	{ STRLEN("enum"), "enum" } ,
-	{ STRLEN("extern"), "extern" } ,
-	{ STRLEN("false"), "false" } ,
-	{ STRLEN("float"), "float" } ,
-	{ STRLEN("for"), "for" } ,
-	{ STRLEN("goto"), "goto" } ,
-	{ STRLEN("if"), "if" } ,
-	{ STRLEN("inline"), "inline" } ,
-	{ STRLEN("int"), "int" } ,
-	{ STRLEN("long"), "long" } ,
-	{ STRLEN("noreturn"), "noreturn" } ,
-	{ STRLEN("not"), "not" } ,
-	{ STRLEN("not_eq"), "not_eq" } ,
-	{ STRLEN("or"), "or" } ,
-	{ STRLEN("or_eq"), "or_eq" } ,
-	{ STRLEN("register"), "register" } ,
-	{ STRLEN("restrict"), "restrict" } ,
-	{ STRLEN("return"), "return" } ,
-	{ STRLEN("short"), "short" } ,
-	{ STRLEN("signed"), "signed" } ,
-	{ STRLEN("sizeof"), "sizeof" } ,
-	{ STRLEN("static"), "static" } ,
-	{ STRLEN("static_assert"), "static_assert" } ,
-	{ STRLEN("struct"), "struct" } ,
-	{ STRLEN("switch"), "switch" } ,
-	{ STRLEN("thread_local"), "thread_local" } ,
-	{ STRLEN("true"), "true" } ,
-	{ STRLEN("typedef"), "typedef" } ,
-	{ STRLEN("union"), "union" } ,
-	{ STRLEN("unsigned"), "unsigned" } ,
-	{ STRLEN("void"), "void" } ,
-	{ STRLEN("volatile"), "volatile" } ,
-	{ STRLEN("while"), "while" } ,
-	{ STRLEN("xor"), "xor" } ,
-	{ STRLEN("xor_eq"), "xor_eq" } ,
-
-	{ 0, NULL }
-};
-
-static Word *
-find_member(Word *table, const char *string)
-{
-	Word *w;
-	for (w = table; w->length != 0; w++) {
-		if (strcmp(string, w->word) == 0) {
-			return w;
-		}
-	}
-	return NULL;
-}
-
-RuleCount
-rule_count(FILE *fp_in, FILE *fp_out)
-{
-	size_t wordi = 0;
-	char word[WORD_BUFFER_SIZE];
-	RuleCount counts = { 0, 0, 0 };
-	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
-
-/* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
-#define IS_CODE	(quote == is_comment)
-
-	while ((ch = fgetc(fp_in)) != EOF) {
-		if (ch == '\r') {
-			/* Discard bare CR and those part of CRLF. */
-			counts.gross++;
-			continue;
-		}
-#ifdef ASCII_ONLY
-		if (ch == '\0' || 128 <= ch) {
-			errx(1, "NUL or non-ASCII characters");
-		}
-#endif
-
-		/* Future gazing. */
-		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
-			/* Discard bare CR and those part of CRLF. */
-			counts.gross++;
-		}
-#ifdef ASCII_ONLY
-		if (next_ch == '\0' || 128 <= next_ch) {
-			errx(1, "NUL or non-ASCII characters");
-		}
-#endif
-
-#ifdef TRIGRAPHS
-		if (ch == '?' && next_ch == '?') {
-			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
-			const char *t;
-			static const char trigraphs[] = "=#([)]'^<{!|>}-~/\\";
-
-			ch = fgetc(fp_in);
-			for (t = trigraphs; *t != '\0'; t += 2) {
-				if (ch == t[0]) {
-					/* Mapped trigraphs count as 1 byte. */
-					next_ch = fgetc(fp_in);
-					counts.gross += 2;
-					ch = t[1];
-					break;
-				}
-			}
-
-			/* Unknown trigraph, push back the 3rd character. */
-			if (*t == '\0') {
-				if (ch != EOF && ungetc(ch, fp_in) == EOF) {
-					errx(1, "ungetc error: bad \?\?%c trigraph", ch);
-				}
-				ch = '?';
-			}
-		}
-#endif
-		if (ch == '\\' && next_ch == '\n') {
-			/* ISO C11 section 5.1.1.2 Translation Phases
-			 * point 2 discards backslash newlines.
-			 */
-			counts.gross += 2;
-			continue;
-		}
-
-		if (next_ch != EOF && ungetc(next_ch, fp_in) == EOF) {
-			/* ISO C ungetc() guarantees one character (byte) pushback.
-			 * How does that relate to UTF8 and wide-character library
-			 * handling?  An invalid trigraph results in 2x ungetc().
-			 */
-			errx(1, "ungetc error: @SirWumpus goofed");
-		}
-
-		/* Within quoted string? */
-		if (quote != NO_STRING) {
-			/* Escape _this_ character. */
-			if (escape) {
-				escape = 0;
-			}
-
-			/* Escape next character. */
-			else if (ch == '\\') {
-				escape = 1;
-			}
-
-			/* Close matching quote? */
-			else if (ch == quote) {
-				quote = NO_STRING;
-			}
-		}
-
-		/* Within comment to end of line? */
-		else if (is_comment == COMMENT_EOL && ch == '\n') {
-			if (debug > 1) {
-				(void) fprintf(stderr, "~~NO_COMMENT\n");
-			}
-			is_comment = NO_COMMENT;
-		}
-
-		/* Within comment block? */
-		else if (is_comment == COMMENT_BLOCK && ch == '*' && next_ch == '/') {
-			if (debug > 1) {
-				(void) fprintf(stderr, "~~NO_COMMENT\n");
-			}
-			is_comment = NO_COMMENT;
-		}
-
-		/* Start of comment to end of line? */
-		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '/') {
-			if (debug > 1) {
-				(void) fprintf(stderr, "~~COMMENT_EOL\n");
-			}
-			is_comment = COMMENT_EOL;
-
-			/* Consume next_ch. */
-			if (fp_out != NULL) {
-				(void) fputc(ch, fp_out);
-			}
-			ch = fgetc(fp_in);
-			counts.gross++;
-			counts.net++;
-		}
-
-		/* Start of comment block? */
-		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '*') {
-			if (debug > 1) {
-				(void) fprintf(stderr, "~~COMMENT_BLOCK\n");
-			}
-			is_comment = COMMENT_BLOCK;
-
-			/* Consume next_ch. */
-			if (fp_out != NULL) {
-				(void) fputc(ch, fp_out);
-			}
-			ch = fgetc(fp_in);
-			counts.gross++;
-			counts.net++;
-		}
-
-		/* Open single or double quote? */
-		else if (is_comment == NO_COMMENT && (ch == '\'' || ch == '"')) {
-			quote = ch;
-		}
-
-		if (fp_out != NULL) {
-			(void) fputc(ch, fp_out);
-		}
-
-#ifdef DIGRAPHS
-		/* ISO C11 section 6.4.6 Punctuators, digraphs handled during
-		 * tokenization, but map here and count as 1 byte, like their
-		 * ASCII counter parts.
-		 */
-		if (IS_CODE) {
-			const char *d;
-			static const char digraphs[] = "[<:]:>{<%}%>#%:";
-			for (d = digraphs; *d != '\0'; d += 3) {
-				if (ch == d[1] && next_ch == d[2]) {
-					if (fp_out != NULL) {
-						(void) fputc(next_ch, fp_out);
-					}
-					(void) fgetc(fp_in);
-					counts.gross++;
-					ch = d[0];
-					break;
-				}
-			}
-		}
-#endif
-		/* Sanity check against file size and wc(1) byte count. */
-		counts.gross++;
-
-		/* End of possible keyword?  Care with #word as there can
-		 * be whitespace or comments between # and word.
-		 */
-		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
-			if (find_member(cwords, word) != NULL) {
-				/* Count keyword as 1. */
-				counts.net = counts.net - wordi + 1;
-				counts.keywords++;
-				if (debug > 1) {
-					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", counts.keywords, word);
-				}
-			}
-			word[wordi = 0] = '\0';
-		}
-
-		/* Ignore all whitespace. */
-		if (isspace(ch)) {
-			if (debug > 2) {
-				(void) fprintf(stderr, "~~ignore whitespace %#02x\n", ch);
-			}
-			continue;
-		}
-
-		/* Ignore begin/end block and end of statement. */
-		if (strchr("{;}", ch) != NULL && (isspace(next_ch) || next_ch == EOF)) {
-			if (debug > 2) {
-				(void) fprintf(stderr, "~~ignore %c\n", ch);
-			}
-			continue;
-		}
-
-		/* Collect next word not in a string or comment. */
-		if (IS_CODE && (isalnum(ch) || ch == '_' || ch == '#')) {
-			if (sizeof (word) <= wordi) {
-				warnx("word buffer overflow");
-				wordi = 0;
-			}
-			word[wordi++] = (char) ch;
-			word[wordi] = '\0';
-		}
-
-		counts.net++;
-	}
-
-	return counts;
-}
-
-#ifdef WITH_MAIN
-
-static char *out_fmt = "%lu\n";
-
-static char usage[] =
-"usage: iocccsize [-ihvV] prog.c\n"
-"       iocccsize [-ihvV] < prog.c\n"
+static char usage0[] =
+"usage: iocccsize [-h] [-i] [-v level] [-V] prog.c\n"
+"usage: iocccsize [-h] [-i] [-v level] [-V] < prog.c\n"
 "\n"
 "-i\t\tignored for backward compatibility\n"
-"-h\t\tprint usage message in stderr and exit\n"
-"-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
-"-V\t\tprint version and exit\n"
+"-h\t\tprint usage message in stderr and exit 2\n"
+"-v level\tset debug level (def: none)\n"
+"-V\t\tprint version and exit 3\n"
+"\n";
+static char usage1[] =
+"\tBy default,the Rule 2b count is written to stdout.\n"
+"\tIf the debug level is > 0, then the Rule 2a, Rule 2b,\n"
+"\tand keyword count is written to stdout instead.\n"
 "\n"
-"The source is written to stdout, with possible translations ie. trigraphs.\n"
-"The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
-"gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write\n"
-"more tool diagnostics.\n"
-;
+"Exit codes:\n"
+"\t0 - source code is within Rule 2a and Rule 2b limits\n"
+"\t1 - source code larger than Rule 2a and/or Rule 2b limits\n"
+"\t2 - -h used and help printed\n"
+"\t3 - -V used and version printed\n"
+"\t4 - invalid command line\n"
+"\t>= 5 - some internal error occurred\n";
+
+int verbosity_level = 0;
 
 int
 main(int argc, char **argv)
 {
-	RuleCount counts;
-	int ch, rc = EXIT_SUCCESS;
+	extern char *optarg;		/* option argument */
+	FILE *fp = stdin;		/* stream from which to determine sizes */
+	RuleCount count;		/* rule_count() processing results */
+	int ch;
 
-	while ((ch = getopt(argc, argv, "6ihvV")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihv:V")) != -1) {
 		switch (ch) {
 		case 'i': /* ignored for backward compatibility */
 			break;
 
 		case 'v':
-			debug++;
-			out_fmt = "%lu %lu %lu\n";
+			errno = 0;
+			verbosity_level = (int)strtol(optarg, NULL, 0);
+			if (errno != 0) {
+			    iocccsize_errx(4, "cannot parse -v arg: %s", optarg);
+			    not_reached();
+			}
 			break;
 
 		case 'V':
-			printf("%s\n", VERSION);
-			exit(0);
+			printf("%s\n", iocccsize_version);
+			exit(3); /*ooo*/
 
 		case '6': /* You're a RTFS master!  Congrats. */
-			errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!");
+			iocccsize_errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!"); /*ooo*/
+			not_reached();
 
 		case 'h':
+			fprintf(stderr, "%s%s", usage0, usage1);
+			exit(2); /*ooo*/
+			break;
+
 		default:
-			fprintf(stderr, "%s", usage);
-			return 2;
+			fprintf(stderr, "unknown -option\n");
+			fprintf(stderr, "%s%s", usage0, usage1);
+			exit(4); /*ooo*/
+			break;
 		}
 	}
 
 	if (optind + 1 == argc) {
 		/* Redirect stdin to file path argument. */
-		if (freopen(argv[optind], "r", stdin) == NULL) {
-			err(3, "%s", argv[optind]);
+		errno = 0;
+		fp = fopen(argv[optind], "r");
+		if (fp == NULL) {
+			fprintf(stderr, "fopen(%s) failed: %s\n", argv[optind], strerror(errno));
+			exit(6); /*ooo*/
+			not_reached();
 		}
 	} else if (optind != argc) {
 		/* Too many arguments. */
-		fprintf(stderr, "%s", usage);
-		return 2;
+		fprintf(stderr, "%s%s", usage0, usage1);
+		exit(4); /*ooo*/
+		not_reached();
 	}
 
-	(void) setvbuf(stdin, NULL, _IOLBF, 0);
+	(void) setvbuf(fp, NULL, _IOLBF, 0);
 
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
-	counts = rule_count(stdin, stdout);
+	count = rule_count(fp);
+	if (verbosity_level == 0) {
+		(void) printf("%ld\n", (unsigned long)count.rule_2b_size);
+	} else {
+		(void) printf("%ld %ld %ld\n", (unsigned long)count.rule_2b_size, (unsigned long)count.rule_2a_size,
+					       (unsigned long)count.keywords);
+	}
 
 	/*
-	 * The original author was not entirely in agreement with printing
-	 * these warnings, since he believes that its the programmer's job to
-	 * be cognisant of the rules, guidelines, and the state of their work.
-	 *
-	 * The IOCCC judges observe that enough IOCCC submitters are not so
-	 * cognizant (cognisant) and so make these warnings manditory in the
-	 * hopes it will reduce the number of entries that violate the IOCCC
-	 * size rules.
+	 * issue warnings
 	 */
-	if (MAX_SIZE < counts.gross) {
-		if (debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, MAX_SIZE);
-		}
-		rc = EXIT_FAILURE;
+	if (count.char_warning) {
+		iocccsize_warnx("Warning: character(s) with high bit set found! Be careful you don't violate rule 13!");
 	}
-	if (MAX_COUNT < counts.net) {
-		if (debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, MAX_COUNT);
-		}
-		rc = EXIT_FAILURE;
+	if (count.nul_warning) {
+		iocccsize_warnx("Warning: NUL character(s) found! Be careful you don't violate rule 13!");
 	}
-
-	(void) fprintf(stderr, out_fmt, counts.net, counts.gross, counts.keywords);
+	if (count.trigraph_warning) {
+		iocccsize_warnx("Warning: unknown or invalid trigraph(s) found! Is that a bug in, or a feature of your code?");
+	}
+	if (count.wordbuf_warning) {
+		iocccsize_warnx("Warning: word buffer overflow! Is that a bug in, or a feature of your code?");
+	}
+	if (count.ungetc_warning) {
+		iocccsize_warnx("Warning: ungetc error: @SirWumpus goofed. The count on stdout may be invalid under rule 2!");
+	}
+	if (count.rule_2a_size > RULE_2A_SIZE) {
+		iocccsize_warnx("Warning: your source under Rule 2a: %lu exceeds Rule 2a limit: %lu: Rule 2a violation!\n",
+			        (unsigned long)count.rule_2a_size, (unsigned long)RULE_2A_SIZE);
+	}
+	if (count.rule_2b_size > RULE_2B_SIZE) {
+		iocccsize_warnx("Warning: your source under Rule 2b: %lu exceeds Rule 2b limit: %lu: Rule 2b violation!\n",
+				(unsigned long)count.rule_2b_size, (unsigned long)RULE_2B_SIZE);
+	}
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	return rc;
+	if ((count.rule_2a_size > RULE_2A_SIZE) || (count.rule_2b_size > RULE_2B_SIZE)) {
+		exit(1); /*ooo*/
+	}
+	exit(0); /*ooo*/
 }
-
-#endif /* WITH_MAIN */
