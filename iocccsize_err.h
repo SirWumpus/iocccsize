@@ -2,8 +2,9 @@
  * iocccsize_err.h - debug, warning and error compat routines
  */
 
-#if !defined(__iocccsize_err_h__)
-#define __iocccsize_err_h__
+
+#if !defined(INCLUDE_IOCCCSIZE_ERR_H)
+#    define  INCLUDE_IOCCCSIZE_ERR_H
 
 
 #ifdef __cplusplus
@@ -40,7 +41,7 @@ extern "C" {
  * For example, MSVC, TenDRA and Little C Compiler doesn't support __attribute__.
  * Early gcc does not support __attribute__.
  *
- * Not all compiles have __has_builtin
+ * Not all compilers have __has_builtin
  *
  * __func__ is not supported prior to C99.
  */
@@ -102,4 +103,4 @@ extern "C" {
 #endif
 
 
-#endif /* __iocccsize_err_h__ */
+#endif /* INCLUDE_IOCCCSIZE_ERR_H */

@@ -94,6 +94,7 @@ static char usage1[] =
 
 int verbosity_level = 0;
 
+
 int
 main(int argc, char **argv)
 {
@@ -142,8 +143,7 @@ main(int argc, char **argv)
 		errno = 0;
 		fp = fopen(argv[optind], "r");
 		if (fp == NULL) {
-			fprintf(stderr, "fopen(%s) failed: %s\n", argv[optind], strerror(errno));
-			exit(6); /*ooo*/
+			iocccsize_errx(6, "fopen(%s) failed", argv[optind]); /*ooo*/
 			not_reached();
 		}
 	} else if (optind != argc) {

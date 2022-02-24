@@ -49,7 +49,7 @@ distclean clobber: clean
 	-rm -fr test-${PROJ} 2>/dev/null
 
 test: build
-	./${PROJ}-test.sh -v
+	./${PROJ}-test.sh -v 1
 
 version:
 	git describe --tags --abbrev=0 >VERSION

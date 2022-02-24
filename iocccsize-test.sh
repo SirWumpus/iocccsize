@@ -16,40 +16,62 @@ export DIGRAPHS='true'	# assume #define DIGRAPHS
 export TRIGRAPHS='true'	# assume #define TRIGRAPHS
 export EXIT_CODE=0
 
+export __tool="./iocccsize"
+export __tool_args="--"
+export __verbose=
+export __build=
+
 usage()
 {
-	echo 'usage: iocccsize-test.sh [-bv][-t tool]'
-	exit 2
+	echo "usage: $0 [-h] [-b] [-v lvl] [-V] [-t tool]"
+	echo
+	echo "	-h	    print usage message and exit 2"
+	echo "	-b	    make disclean all (def: make all)"
+	echo "	-v lvl	    set debugging level to lvl (def: no debugging)"
+	echo "	-V	    print tool version and exit 3"
+	echo "	-t tool	    test with tool (def: test with ./iocccsize)"
+	echo
+	echo "Exit codes:"
+	echo
+	echo "	0   all is OK"
+	echo "	1   one or more test failed"
+	echo "	2   usage message printed"
+	echo "	3   tool version printed"
 }
 
-__tool="./iocccsize"
-__verbose=false
-
-while getopts 'bvt:' opt; do
+while getopts 'hbv:Vt:' opt; do
 	case "$opt" in
+	(h)
+		usage 1>&2
+		exit 2
+		;;
 	(b)
 		__build="distclean"
 		;;
 	(v)
 		__verbose=true
-		__tool_args="-v 1"
+		__tool_args="-v ${OPTARG} --"
+		;;
+	(V)
+		"$__tool" -V
+		exit 3
 		;;
 	(t)
 		__tool="$OPTARG"
 		;;
 	(*)
-		usage
+		echo "unknown option" 1>&2
+		echo 1>&2
+		usage 1>&2
+		exit 2
 	esac
 done
-shift $(($OPTIND - 1))
-#if [[ $# -lt 1 ]]; then
-#        usage
-#fi
+shift $((OPTIND - 1))
 
-make ${__build} all 2>&1 | grep -v 'Nothing to be done for'
+eval make "${__build}" all 2>&1 | grep -v 'Nothing to be done for'
 
 if [[ ! -d test-iocccsize ]]; then
-	mkdir test-iocccsize
+	mkdir -p test-iocccsize
 fi
 
 # Change DIGRAPHS and TRIGRAPHS according to limit_ioccc.h
@@ -62,7 +84,7 @@ get_wc()
 {
 	typeset file="$1"
 	typeset field="$2"
-	wc $file | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
+	wc "$file" | sed -e's/^ *//; s/  */ /g' | cut -d' ' "-f$field"
 }
 
 test_size()
@@ -72,20 +94,20 @@ test_size()
 	typeset gross_count
 	typeset got
 
-	got=$($__tool $__tool_args $file 2>/dev/null)
-	if $__verbose ; then
-		gross_count=$(echo $got | cut -d' ' -f2)
-		bytes=$(get_wc $file 3 $filter)
-		if [[ $gross_count != $bytes ]]; then
+	got=$("$__tool" "$__tool_args" "$file" 2>/dev/null)
+	if [[ -n $__verbose ]]; then
+		gross_count=$(echo "$got" | cut -d' ' -f2)
+		bytes=$(get_wc "$file" 3)
+		if [[ $gross_count != "$bytes" ]]; then
 			echo "FAIL $file: got $gross_count != wc $bytes"
 			EXIT_CODE=1
 			return
 		fi
 	else
-		got=$(echo $got | cut -d' ' -f1)
-		expect=$(echo $expect | cut -d' ' -f1)
+		got=$(echo "$got" | cut -d' ' -f1)
+		expect=$(echo "$expect" | cut -d' ' -f1)
 	fi
-	if [[ "$expect" = "$got" ]]; then
+	if [[ $expect = "$got" ]]; then
 		echo "-OK- $file: $got"
 	else
 		echo "FAIL $file: got $got != expect $expect"
