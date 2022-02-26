@@ -531,26 +531,26 @@ main(int argc, char **argv)
 
 	/* Any warnings? */
 	if (0 < counts.nul) {
-		(void) fprintf(stderr, "warning: %zu NUL bytes seen; careful not to violate rule 13!\n", counts.nul);
+		(void) fprintf(stderr, "warning: %lu NUL bytes seen; careful not to violate rule 13!\n", counts.nul);
 	}
 	if (0 < counts.high_bit) {
-		(void) fprintf(stderr, "warning: %zu non-ASCII bytes; parlez vous Francais?\n", counts.high_bit);
+		(void) fprintf(stderr, "warning: %lu non-ASCII bytes; parlez vous Francais?\n", counts.high_bit);
 	}
 	if (0 < counts.bad_trigraph) {
-		(void) fprintf(stderr, "warning: %zu bad trigraphs; is that a bug or feature of your code?\n", counts.bad_trigraph);
+		(void) fprintf(stderr, "warning: %lu bad trigraphs; is that a bug or feature of your code?\n", counts.bad_trigraph);
 	}
 	if (0 < counts.ungetc_error) {
-		(void) fprintf(stderr, "warning: %zu ungetc errors; @SirWumpus goofed. The count on stdout may be invalid under rule 2!\n", counts.ungetc_error);
+		(void) fprintf(stderr, "warning: %lu ungetc errors; @SirWumpus goofed. The count on stdout may be invalid under rule 2!\n", counts.ungetc_error);
 	}
 	if (0 < counts.word_overflow) {
-		(void) fprintf(stderr, "warning: %zu word buffer overflows; is that a bug or feature of your code?\n", counts.word_overflow);
+		(void) fprintf(stderr, "warning: %lu word buffer overflows; is that a bug or feature of your code?\n", counts.word_overflow);
 	}
 	if (RULE_2A_SIZE < counts.rule_2a_size) {
-		(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
+		(void) fprintf(stderr, "warning: size %lu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
 		rc = EXIT_FAILURE;
 	}
 	if (RULE_2B_SIZE < counts.rule_2b_size) {
-		(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
+		(void) fprintf(stderr, "warning: count %lu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 		rc = EXIT_FAILURE;
 	}
 
