@@ -474,6 +474,15 @@ static char usage[] =
 "The IOCCC net count rule 2b is written to stdout; with -v1, net count (2b),\n"
 "gross count (2a), number of keywords counted as 1 byte.  With -v2 or -v3\n"
 "write source to stdout and tool diagnostics to stderr.\n"
+"\n"
+"Exit Codes\n"
+"\n"
+"0\tsource code passes rules 2a and 2b.\n"
+"1\tsource code fails rule 2a and/or 2b.\n"
+"2\tusage -h\n"
+"3\tversion -V\n"
+"4\tcommand line argument error\n"
+"5+\tsome other internal error\n"
 ;
 
 int
