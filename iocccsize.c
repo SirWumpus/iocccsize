@@ -8,20 +8,20 @@
  *
  * SYNOPSIS
  *
- * 	iocccsize [-ihvV] prog.c
- * 	iocccsize [-ihvV] < prog.c
+ * 	iocccsize [-ihV][-v level] prog.c
+ * 	iocccsize [-ihV][-v level] < prog.c
  *
- *	-i	ignored for backward compatibility
- *	-h	print usage message in stderr and exit
- *	-v	turn on some debugging to stderr; -vv or -vvv for more
- *	-V	print version and exit
+ *	-i		ignored for backward compatibility
+ *	-h		print usage message in stderr and exit
+ *	-v level	turn on some debugging to stderr
+ *	-V		print version and exit
  *
  *	The source is written to stdout, with possible translations ie. trigraphs.
- *	The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),
- *	gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write
+ *	The IOCCC net count rule 2b is written to stderr; with -v1, net count (2b),
+ *	gross count (2a), number of keywords counted as 1 byte; -v2 or -v3 write
  *	more tool diagnostics.
  *
- * DESCRIPION
+ * DESCRIPTION
  *
  *	Reading a C source file from standard input, apply the IOCCC
  *	source size rules as explained in the Guidelines.  The source
@@ -445,46 +445,50 @@ rule_count(FILE *fp_in, FILE *fp_out)
 static char *out_fmt = "%lu\n";
 
 static char usage[] =
-"usage: iocccsize [-ihvV] prog.c\n"
-"       iocccsize [-ihvV] < prog.c\n"
+"usage: iocccsize [-ihV][-v level] prog.c\n"
+"       iocccsize [-ihV][-v level] < prog.c\n"
 "\n"
 "-i\t\tignored for backward compatibility\n"
 "-h\t\tprint usage message in stderr and exit\n"
-"-v\t\tturn on some debugging to stderr; -vv or -vvv for more\n"
+"-v level\tturn on some debugging to stderr\n"
 "-V\t\tprint version and exit\n"
 "\n"
 "The source is written to stdout, with possible translations ie. trigraphs.\n"
-"The IOCCC net count rule 2b is written to stderr; with -v, net count (2b),\n"
-"gross count (2a), number of keywords counted as 1 byte; -vv or -vvv write\n"
+"The IOCCC net count rule 2b is written to stderr; with -v1, net count (2b),\n"
+"gross count (2a), number of keywords counted as 1 byte; -v2 or -v3 write\n"
 "more tool diagnostics.\n"
 ;
 
 int
 main(int argc, char **argv)
 {
+	char *stop;
 	RuleCount counts;
 	int ch, rc = EXIT_SUCCESS;
 
-	while ((ch = getopt(argc, argv, "6ihvV")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihv:V")) != -1) {
 		switch (ch) {
 		case 'i': /* ignored for backward compatibility */
 			break;
 
 		case 'v':
-			debug++;
+			debug = (int) strtol(optarg, &stop, 0);
+			if (*stop != '\0') {
+				errx(4, "bad -v argument: %s", optarg);
+			}
 			out_fmt = "%lu %lu %lu\n";
 			break;
 
 		case 'V':
-			printf("%s\n", VERSION);
-			exit(0);
+			(void) printf("%s\n", VERSION);
+			exit(3);
 
 		case '6': /* You're a RTFS master!  Congrats. */
 			errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!");
 
 		case 'h':
 		default:
-			fprintf(stderr, "%s", usage);
+			(void) fprintf(stderr, "%s", usage);
 			return 2;
 		}
 	}
@@ -496,7 +500,7 @@ main(int argc, char **argv)
 		}
 	} else if (optind != argc) {
 		/* Too many arguments. */
-		fprintf(stderr, "%s", usage);
+		(void) fprintf(stderr, "%s", usage);
 		return 2;
 	}
 
