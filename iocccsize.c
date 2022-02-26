@@ -222,7 +222,7 @@ rule_count(FILE *fp_in)
 {
 	size_t wordi = 0;
 	char word[WORD_BUFFER_SIZE];
-	RuleCount counts = { 0, 0, 0 };
+	RuleCount counts = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
 
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
@@ -235,8 +235,15 @@ rule_count(FILE *fp_in)
 			continue;
 		}
 #ifdef ASCII_ONLY
-		if (ch == '\0' || 128 <= ch) {
-			errx(1, "NUL or non-ASCII characters");
+		if (ch == '\0') {
+			counts.rule_2a_size++;
+			counts.nul++;
+			continue;
+		}
+		if (128 <= ch) {
+			counts.rule_2a_size++;
+			counts.high_bit++;
+			continue;
 		}
 #endif
 
@@ -246,8 +253,17 @@ rule_count(FILE *fp_in)
 			counts.rule_2a_size++;
 		}
 #ifdef ASCII_ONLY
-		if (next_ch == '\0' || 128 <= next_ch) {
-			errx(1, "NUL or non-ASCII characters");
+		if (next_ch == '\0') {
+			(void) ungetc(ch);
+			counts.rule_2a_size++;
+			counts.nul++;
+			continue;
+		}
+		if (128 <= next_ch) {
+			(void) ungetc(ch);
+			counts.rule_2a_size++;
+			counts.high_bit++;
+			continue;
 		}
 #endif
 
@@ -271,8 +287,10 @@ rule_count(FILE *fp_in)
 			/* Unknown trigraph, push back the 3rd character. */
 			if (*t == '\0') {
 				if (ch != EOF && ungetc(ch, fp_in) == EOF) {
-					errx(1, "ungetc error: bad \?\?%c trigraph", ch);
+					counts.ungetc_error++;
+					/* Proceed with bad ch = '?'. */
 				}
+				counts.bad_trigraph++;
 				ch = '?';
 			}
 		}
@@ -290,7 +308,9 @@ rule_count(FILE *fp_in)
 			 * How does that relate to UTF8 and wide-character library
 			 * handling?  An invalid trigraph results in 2x ungetc().
 			 */
-			errx(1, "ungetc error: @SirWumpus goofed");
+			counts.ungetc_error++;
+			counts.rule_2a_size++;
+			continue;
 		}
 
 		/* Within quoted string? */
@@ -426,7 +446,7 @@ rule_count(FILE *fp_in)
 		/* Collect next word not in a string or comment. */
 		if (IS_CODE && (isalnum(ch) || ch == '_' || ch == '#')) {
 			if (sizeof (word) <= wordi) {
-				warnx("word buffer overflow");
+				counts.word_overflow++;
 				wordi = 0;
 			}
 			word[wordi++] = (char) ch;
@@ -509,26 +529,28 @@ main(int argc, char **argv)
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
 	counts = rule_count(fp_in);
 
-	/*
-	 * The original author was not entirely in agreement with printing
-	 * these warnings, since he believes that its the programmer's job to
-	 * be cognisant of the rules, guidelines, and the state of their work.
-	 *
-	 * The IOCCC judges observe that enough IOCCC submitters are not so
-	 * cognizant (cognisant) and so make these warnings manditory in the
-	 * hopes it will reduce the number of entries that violate the IOCCC
-	 * size rules.
-	 */
+	/* Any warnings? */
+	if (0 < counts.nul) {
+		(void) fprintf(stderr, "warning: %zu NUL bytes seen; careful not to violate rule 13!\n", counts.nul);
+	}
+	if (0 < counts.high_bit) {
+		(void) fprintf(stderr, "warning: %zu non-ASCII bytes; parlez vous Francais?\n", counts.high_bit);
+	}
+	if (0 < counts.bad_trigraph) {
+		(void) fprintf(stderr, "warning: %zu bad trigraphs; is that a bug or feature of your code?\n", counts.bad_trigraph);
+	}
+	if (0 < counts.ungetc_error) {
+		(void) fprintf(stderr, "warning: %zu ungetc errors; @SirWumpus goofed. The count on stdout may be invalid under rule 2!\n", counts.ungetc_error);
+	}
+	if (0 < counts.word_overflow) {
+		(void) fprintf(stderr, "warning: %zu word buffer overflows; is that a bug or feature of your code?\n", counts.word_overflow);
+	}
 	if (RULE_2A_SIZE < counts.rule_2a_size) {
-		if (rule_count_debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
-		}
+		(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
 		rc = EXIT_FAILURE;
 	}
 	if (RULE_2B_SIZE < counts.rule_2b_size) {
-		if (rule_count_debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
-		}
+		(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 		rc = EXIT_FAILURE;
 	}
 

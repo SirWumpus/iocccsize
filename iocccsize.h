@@ -45,6 +45,11 @@ typedef struct {
 	size_t rule_2a_size;
 	size_t rule_2b_size;
 	size_t keywords;	/* keyword count - for -v mode */
+	size_t nul;		/* Count NUL bytes seen. */
+	size_t high_bit;	/* Count non-ASCII high-bit set bytes. */
+	size_t bad_trigraph;	/* Count unknown trigraphs seen. */
+	size_t ungetc_error;	/* Count ungetc depth exceeded. */
+	size_t word_overflow;	/* Count word buffer overflows. */
 } RuleCount;
 
 /**
