@@ -35,7 +35,7 @@ all: build
 build: ${PROJ}
 
 clean:
-	-rm -f ${PROJ}.i ${PROJ}$O *.stackdump *.core 2>/dev/null
+	-rm -f ${PROJ}.i ${PROJ}$O rule_count$O *.stackdump *.core 2>/dev/null
 
 distclean clobber: clean
 	-rm -fr ${PROJ}$E ${PROJ}.dSYM test-${PROJ} a.out VERSION 2>/dev/null
@@ -51,3 +51,6 @@ tar: version
 
 iocccsize$E: iocccsize.h iocccsize.c
 	${CC} ${CFLAGS} ${CPPFLAGS} -DVERSION='"'${VERSION}'"' -DWITH_MAIN -oiocccsize$E iocccsize.c ${LIBS}
+
+rule_count$O: iocccsize.h iocccsize.c
+	${CC} ${CFLAGS} ${CPPFLAGS} -c -orule_count$O iocccsize.c
