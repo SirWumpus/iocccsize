@@ -30,9 +30,9 @@ extern "C" {
 #endif
 
 typedef struct {
-	size_t net;
-	size_t gross;
-	size_t keywords;
+	size_t rule_2a_size;
+	size_t rule_2b_size;
+	size_t keywords;	/* keyword count - for -v mode */
 } RuleCount;
 
 /**

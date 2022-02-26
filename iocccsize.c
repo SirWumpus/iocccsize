@@ -235,7 +235,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 	while ((ch = fgetc(fp_in)) != EOF) {
 		if (ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
-			counts.gross++;
+			counts.rule_2a_size++;
 			continue;
 		}
 #ifdef ASCII_ONLY
@@ -247,7 +247,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 		/* Future gazing. */
 		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
-			counts.gross++;
+			counts.rule_2a_size++;
 		}
 #ifdef ASCII_ONLY
 		if (next_ch == '\0' || 128 <= next_ch) {
@@ -266,7 +266,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 				if (ch == t[0]) {
 					/* Mapped trigraphs count as 1 byte. */
 					next_ch = fgetc(fp_in);
-					counts.gross += 2;
+					counts.rule_2a_size += 2;
 					ch = t[1];
 					break;
 				}
@@ -285,7 +285,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 			/* ISO C11 section 5.1.1.2 Translation Phases
 			 * point 2 discards backslash newlines.
 			 */
-			counts.gross += 2;
+			counts.rule_2a_size += 2;
 			continue;
 		}
 
@@ -343,8 +343,8 @@ rule_count(FILE *fp_in, FILE *fp_out)
 				(void) fputc(ch, fp_out);
 			}
 			ch = fgetc(fp_in);
-			counts.gross++;
-			counts.net++;
+			counts.rule_2a_size++;
+			counts.rule_2b_size++;
 		}
 
 		/* Start of comment block? */
@@ -359,8 +359,8 @@ rule_count(FILE *fp_in, FILE *fp_out)
 				(void) fputc(ch, fp_out);
 			}
 			ch = fgetc(fp_in);
-			counts.gross++;
-			counts.net++;
+			counts.rule_2a_size++;
+			counts.rule_2b_size++;
 		}
 
 		/* Open single or double quote? */
@@ -386,7 +386,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 						(void) fputc(next_ch, fp_out);
 					}
 					(void) fgetc(fp_in);
-					counts.gross++;
+					counts.rule_2a_size++;
 					ch = d[0];
 					break;
 				}
@@ -394,7 +394,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 		}
 #endif
 		/* Sanity check against file size and wc(1) byte count. */
-		counts.gross++;
+		counts.rule_2a_size++;
 
 		/* End of possible keyword?  Care with #word as there can
 		 * be whitespace or comments between # and word.
@@ -402,7 +402,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
 			if (find_member(cwords, word) != NULL) {
 				/* Count keyword as 1. */
-				counts.net = counts.net - wordi + 1;
+				counts.rule_2b_size = counts.rule_2b_size - wordi + 1;
 				counts.keywords++;
 				if (debug > 1) {
 					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", counts.keywords, word);
@@ -437,7 +437,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 			word[wordi] = '\0';
 		}
 
-		counts.net++;
+		counts.rule_2b_size++;
 	}
 
 	return counts;
@@ -518,20 +518,20 @@ main(int argc, char **argv)
 	 * hopes it will reduce the number of entries that violate the IOCCC
 	 * size rules.
 	 */
-	if (RULE_2A_SIZE < counts.gross) {
+	if (RULE_2A_SIZE < counts.rule_2a_size) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, RULE_2A_SIZE);
+			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
 		}
 		rc = EXIT_FAILURE;
 	}
-	if (RULE_2B_SIZE < counts.net) {
+	if (RULE_2B_SIZE < counts.rule_2b_size) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, RULE_2B_SIZE);
+			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 		}
 		rc = EXIT_FAILURE;
 	}
 
-	(void) fprintf(stderr, out_fmt, counts.net, counts.gross, counts.keywords);
+	(void) fprintf(stderr, out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.keywords);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
