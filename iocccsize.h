@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#include <stddef.h>
+#include <stdio.h>
 
 /* IOCCC tool chain, see https://github.com/ioccc-src/mkiocccentry */
 #if defined(MKIOCCCENTRY_USE)
