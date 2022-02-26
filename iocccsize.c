@@ -474,6 +474,9 @@ static char usage[] =
 "The IOCCC net count rule 2b is written to stdout; with -v1, net count (2b),\n"
 "gross count (2a), number of keywords counted as 1 byte.  With -v2 or -v3\n"
 "write source to stdout and tool diagnostics to stderr.\n"
+;
+
+static char exits[] =
 "\n"
 "Exit Codes\n"
 "\n"
@@ -517,7 +520,7 @@ main(int argc, char **argv)
 
 		case 'h':
 		default:
-			(void) fprintf(stderr, "%s\n", usage);
+			(void) fprintf(stderr, "%s%s\n", usage, exits);
 			exit(4); /*ooo*/
 		}
 	}
@@ -530,7 +533,7 @@ main(int argc, char **argv)
 		}
 	} else if (optind != argc) {
 		/* Too many arguments. */
-		(void) fprintf(stderr, "%s\n", usage);
+		(void) fprintf(stderr, "%s%s\n", usage, exits);
 		exit(2); /*ooo*/
 	}
 
