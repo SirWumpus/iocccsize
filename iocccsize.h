@@ -48,17 +48,23 @@ typedef struct {
 } RuleCount;
 
 /**
+ * Set greater than zero for extra debug output.
+ *
+ *	0	no debug
+ *	1	no debug assigned at this time
+ *	2	source to standard output, comment & keyword debug to standard error.
+ *	3	same a 2 with extra character classification debug
+ */
+extern int rule_count_debug;
+
+/**
  * @param fp_in
  *	File pointer to the C source input.
- *
- * @param fp_out
- *	File pointer where to write the translated C source output.
- *	Can be NULL if no output is to be written.
  *
  * @return
  *	Return a RuleCount structure.
  */
-extern RuleCount rule_count(FILE *fp_in, FILE *fp_out);
+extern RuleCount rule_count(FILE *fp_in);
 
 #ifdef  __cplusplus
 }

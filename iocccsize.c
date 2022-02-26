@@ -103,7 +103,7 @@
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
 
-static int debug;
+int rule_count_debug;
 
 /*
  * C reserved words, plus a few #preprocessor tokens, that count as 1
@@ -219,7 +219,7 @@ find_member(Word *table, const char *string)
 }
 
 RuleCount
-rule_count(FILE *fp_in, FILE *fp_out)
+rule_count(FILE *fp_in)
 {
 	size_t wordi = 0;
 	char word[WORD_BUFFER_SIZE];
@@ -314,7 +314,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Within comment to end of line? */
 		else if (is_comment == COMMENT_EOL && ch == '\n') {
-			if (debug > 1) {
+			if (rule_count_debug > 1) {
 				(void) fprintf(stderr, "~~NO_COMMENT\n");
 			}
 			is_comment = NO_COMMENT;
@@ -322,7 +322,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Within comment block? */
 		else if (is_comment == COMMENT_BLOCK && ch == '*' && next_ch == '/') {
-			if (debug > 1) {
+			if (rule_count_debug > 1) {
 				(void) fprintf(stderr, "~~NO_COMMENT\n");
 			}
 			is_comment = NO_COMMENT;
@@ -330,14 +330,14 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Start of comment to end of line? */
 		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '/') {
-			if (debug > 1) {
+			if (rule_count_debug > 1) {
 				(void) fprintf(stderr, "~~COMMENT_EOL\n");
 			}
 			is_comment = COMMENT_EOL;
 
 			/* Consume next_ch. */
-			if (fp_out != NULL) {
-				(void) fputc(ch, fp_out);
+			if (rule_count_debug > 1) {
+				(void) fputc(ch, stdout);
 			}
 			ch = fgetc(fp_in);
 			counts.rule_2a_size++;
@@ -346,14 +346,14 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Start of comment block? */
 		else if (is_comment == NO_COMMENT && ch == '/' && next_ch == '*') {
-			if (debug > 1) {
+			if (rule_count_debug > 1) {
 				(void) fprintf(stderr, "~~COMMENT_BLOCK\n");
 			}
 			is_comment = COMMENT_BLOCK;
 
 			/* Consume next_ch. */
-			if (fp_out != NULL) {
-				(void) fputc(ch, fp_out);
+			if (rule_count_debug > 1) {
+				(void) fputc(ch, stdout);
 			}
 			ch = fgetc(fp_in);
 			counts.rule_2a_size++;
@@ -365,8 +365,8 @@ rule_count(FILE *fp_in, FILE *fp_out)
 			quote = ch;
 		}
 
-		if (fp_out != NULL) {
-			(void) fputc(ch, fp_out);
+		if (rule_count_debug > 1) {
+			(void) fputc(ch, stdout);
 		}
 
 #ifdef DIGRAPHS
@@ -379,8 +379,8 @@ rule_count(FILE *fp_in, FILE *fp_out)
 			static const char digraphs[] = "[<:]:>{<%}%>#%:";
 			for (d = digraphs; *d != '\0'; d += 3) {
 				if (ch == d[1] && next_ch == d[2]) {
-					if (fp_out != NULL) {
-						(void) fputc(next_ch, fp_out);
+					if (rule_count_debug > 1) {
+						(void) fputc(next_ch, stdout);
 					}
 					(void) fgetc(fp_in);
 					counts.rule_2a_size++;
@@ -401,7 +401,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 				/* Count keyword as 1. */
 				counts.rule_2b_size = counts.rule_2b_size - wordi + 1;
 				counts.keywords++;
-				if (debug > 1) {
+				if (rule_count_debug > 1) {
 					(void) fprintf(stderr, "~~keyword %zu \"%s\"\n", counts.keywords, word);
 				}
 			}
@@ -410,7 +410,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Ignore all whitespace. */
 		if (isspace(ch)) {
-			if (debug > 2) {
+			if (rule_count_debug > 2) {
 				(void) fprintf(stderr, "~~ignore whitespace %#02x\n", ch);
 			}
 			continue;
@@ -418,7 +418,7 @@ rule_count(FILE *fp_in, FILE *fp_out)
 
 		/* Ignore begin/end block and end of statement. */
 		if (strchr("{;}", ch) != NULL && (isspace(next_ch) || next_ch == EOF)) {
-			if (debug > 2) {
+			if (rule_count_debug > 2) {
 				(void) fprintf(stderr, "~~ignore %c\n", ch);
 			}
 			continue;
@@ -472,7 +472,7 @@ main(int argc, char **argv)
 			break;
 
 		case 'v':
-			debug = (int) strtol(optarg, &stop, 0);
+			rule_count_debug = (int) strtol(optarg, &stop, 0);
 			if (*stop != '\0') {
 				errx(4, "bad -v argument: %s", optarg);
 			}
@@ -505,9 +505,10 @@ main(int argc, char **argv)
 	}
 
 	(void) setvbuf(stdin, NULL, _IOLBF, 0);
+	(void) setvbuf(stdout, NULL, _IOLBF, 0);
 
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
-	counts = rule_count(stdin, stdout);
+	counts = rule_count(stdin);
 
 	/*
 	 * The original author was not entirely in agreement with printing
@@ -520,13 +521,13 @@ main(int argc, char **argv)
 	 * size rules.
 	 */
 	if (RULE_2A_SIZE < counts.rule_2a_size) {
-		if (debug == 0) {
+		if (rule_count_debug == 0) {
 			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
 		}
 		rc = EXIT_FAILURE;
 	}
 	if (RULE_2B_SIZE < counts.rule_2b_size) {
-		if (debug == 0) {
+		if (rule_count_debug == 0) {
 			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 		}
 		rc = EXIT_FAILURE;
