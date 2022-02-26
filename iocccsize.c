@@ -462,6 +462,7 @@ main(int argc, char **argv)
 {
 	char *stop;
 	RuleCount counts;
+	FILE *fp_in = stdin;
 	int ch, rc = EXIT_SUCCESS;
 
 	while ((ch = getopt(argc, argv, "6ihv:V")) != -1) {
@@ -493,7 +494,7 @@ main(int argc, char **argv)
 
 	if (optind + 1 == argc) {
 		/* Redirect stdin to file path argument. */
-		if (freopen(argv[optind], "r", stdin) == NULL) {
+		if ((fp_in = fopen(argv[optind], "r")) == NULL) {
 			err(3, "%s", argv[optind]);
 		}
 	} else if (optind != argc) {
@@ -502,11 +503,11 @@ main(int argc, char **argv)
 		return 2;
 	}
 
-	(void) setvbuf(stdin, NULL, _IOLBF, 0);
+	(void) setvbuf(fp_in, NULL, _IOLBF, 0);
 	(void) setvbuf(stdout, NULL, _IOLBF, 0);
 
 	/* The Count - 1 Muha .. 2 Muhaha .. 3 Muhahaha ... */
-	counts = rule_count(stdin);
+	counts = rule_count(fp_in);
 
 	/*
 	 * The original author was not entirely in agreement with printing
