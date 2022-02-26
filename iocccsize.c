@@ -86,12 +86,12 @@
  */
 
 #include <ctype.h>
+#include <errno.h>
 #include <getopt.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "err.h"
 #include "iocccsize.h"
 
 #define STRLEN(s)		(sizeof (s)-1)
@@ -492,7 +492,8 @@ main(int argc, char **argv)
 		case 'v':
 			rule_count_debug = (int) strtol(optarg, &stop, 0);
 			if (*stop != '\0') {
-				errx(4, "bad -v argument: %s", optarg);
+				(void) fprintf(stderr, "bad -v argument: %s\n", optarg);
+				exit(4);
 			}
 			out_fmt = "%lu %lu %lu\n";
 			break;
@@ -502,24 +503,26 @@ main(int argc, char **argv)
 			exit(3);
 
 		case '6': /* You're a RTFS master!  Congrats. */
-			errx(6, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!");
+			(void) fprintf(stderr, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!\n");
+			exit(6);
 
 		case 'h':
 		default:
-			(void) fprintf(stderr, "%s", usage);
-			return 2;
+			(void) fprintf(stderr, "%s\n", usage);
+			exit(4);
 		}
 	}
 
 	if (optind + 1 == argc) {
 		/* Redirect stdin to file path argument. */
 		if ((fp_in = fopen(argv[optind], "r")) == NULL) {
-			err(3, "%s", argv[optind]);
+			(void) fprintf(stderr, "%s: %s\n", argv[optind], strerror(errno));
+			exit(6);
 		}
 	} else if (optind != argc) {
 		/* Too many arguments. */
-		(void) fprintf(stderr, "%s", usage);
-		return 2;
+		(void) fprintf(stderr, "%s\n", usage);
+		exit(2);
 	}
 
 	(void) setvbuf(fp_in, NULL, _IOLBF, 0);
