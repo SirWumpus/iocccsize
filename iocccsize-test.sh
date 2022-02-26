@@ -12,6 +12,7 @@ export ENV=''
 export CDPATH=''
 export LANG=C
 
+EXIT_CODE=0
 TESTDIR="./test-iocccsize"
 
 usage()
@@ -78,6 +79,7 @@ test_size()
 		bytes=$(get_wc $file 3 $filter)
 		if [ $gross_count != $bytes ]; then
 			echo "FAIL $file: got $gross_count != wc $bytes"
+			EXIT_CODE=1
 			return
 		fi
 	else
@@ -88,6 +90,7 @@ test_size()
 		echo "-OK- $file: $got"
 	else
 		echo "FAIL $file: got $got != expect $expect"
+		EXIT_CODE=1
 	fi
 }
 
@@ -429,3 +432,5 @@ test_size semicolon2.c "67 127 8"
 #######################################################################
 # END
 #######################################################################
+
+exit ${EXIT_CODE}
