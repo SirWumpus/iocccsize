@@ -16,10 +16,9 @@
  *	-v level	turn on some debugging to stderr
  *	-V		print version and exit
  *
- *	The source is written to stdout, with possible translations ie. trigraphs.
- *	The IOCCC net count rule 2b is written to stderr; with -v1, net count (2b),
- *	gross count (2a), number of keywords counted as 1 byte; -v2 or -v3 write
- *	more tool diagnostics.
+ *	The IOCCC net count rule 2b is written to stdout; with -v1, net count (2b),
+ *	gross count (2a), number of keywords counted as 1 byte.  With -v2 or -v3
+ *	write source to stdout and tool diagnostics to stderr.
  *
  * DESCRIPTION
  *
@@ -453,10 +452,9 @@ static char usage[] =
 "-v level\tturn on some debugging to stderr\n"
 "-V\t\tprint version and exit\n"
 "\n"
-"The source is written to stdout, with possible translations ie. trigraphs.\n"
-"The IOCCC net count rule 2b is written to stderr; with -v1, net count (2b),\n"
-"gross count (2a), number of keywords counted as 1 byte; -v2 or -v3 write\n"
-"more tool diagnostics.\n"
+"The IOCCC net count rule 2b is written to stdout; with -v1, net count (2b),\n"
+"gross count (2a), number of keywords counted as 1 byte.  With -v2 or -v3\n"
+"write source to stdout and tool diagnostics to stderr.\n"
 ;
 
 int
@@ -533,7 +531,7 @@ main(int argc, char **argv)
 		rc = EXIT_FAILURE;
 	}
 
-	(void) fprintf(stderr, out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.keywords);
+	(void) printf(out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.keywords);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
