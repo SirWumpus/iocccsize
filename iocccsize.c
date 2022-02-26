@@ -479,10 +479,10 @@ static char usage[] =
 int
 main(int argc, char **argv)
 {
+	int ch;
 	char *stop;
 	RuleCount counts;
 	FILE *fp_in = stdin;
-	int ch, rc = EXIT_SUCCESS;
 
 	while ((ch = getopt(argc, argv, "6ihv:V")) != -1) {
 		switch (ch) {
@@ -493,23 +493,23 @@ main(int argc, char **argv)
 			rule_count_debug = (int) strtol(optarg, &stop, 0);
 			if (*stop != '\0') {
 				(void) fprintf(stderr, "bad -v argument: %s\n", optarg);
-				exit(4);
+				exit(4); /*ooo*/
 			}
 			out_fmt = "%lu %lu %lu\n";
 			break;
 
 		case 'V':
 			(void) printf("%s\n", VERSION);
-			exit(3);
+			exit(3); /*ooo*/
 
 		case '6': /* You're a RTFS master!  Congrats. */
 			(void) fprintf(stderr, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!\n");
-			exit(6);
+			exit(6); /*ooo*/
 
 		case 'h':
 		default:
 			(void) fprintf(stderr, "%s\n", usage);
-			exit(4);
+			exit(4); /*ooo*/
 		}
 	}
 
@@ -517,12 +517,12 @@ main(int argc, char **argv)
 		/* Redirect stdin to file path argument. */
 		if ((fp_in = fopen(argv[optind], "r")) == NULL) {
 			(void) fprintf(stderr, "%s: %s\n", argv[optind], strerror(errno));
-			exit(6);
+			exit(6); /*ooo*/
 		}
 	} else if (optind != argc) {
 		/* Too many arguments. */
 		(void) fprintf(stderr, "%s\n", usage);
-		exit(2);
+		exit(2); /*ooo*/
 	}
 
 	(void) setvbuf(fp_in, NULL, _IOLBF, 0);
@@ -549,11 +549,9 @@ main(int argc, char **argv)
 	}
 	if (RULE_2A_SIZE < counts.rule_2a_size) {
 		(void) fprintf(stderr, "warning: size %lu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
-		rc = EXIT_FAILURE;
 	}
 	if (RULE_2B_SIZE < counts.rule_2b_size) {
 		(void) fprintf(stderr, "warning: count %lu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
-		rc = EXIT_FAILURE;
 	}
 
 	(void) printf(out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.keywords);
@@ -561,7 +559,11 @@ main(int argc, char **argv)
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	return rc;
+	if ((RULE_2A_SIZE < counts.rule_2a_size) || (RULE_2B_SIZE < counts.rule_2b_size)) {
+		exit(1); /*ooo*/
+	}
+
+	exit(0); /*ooo*/
 }
 
 #endif /* WITH_MAIN */
