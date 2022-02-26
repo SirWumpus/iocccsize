@@ -3,8 +3,8 @@
  *
  *	"You are not expected to understand this" :-)
  *
- *	Public Domain 1992, 2015, 2018, 2019, 2021 by Anthony Howe.  All rights released.
- *	With IOCCC mods in 2019-2021 by chongo (Landon Curt Noll) ^oo^
+ *	Public Domain 1992, 2022 by Anthony Howe.  All rights released.
+ *	With IOCCC mods in 2019, 2022 by chongo (Landon Curt Noll) ^oo^
  *
  * SYNOPSIS
  *
@@ -42,9 +42,6 @@
  *	';', '{' or '}' followed by ASCII whitespace, and excluding any
  *	';', '{' or '}' octet immediately before the end of file.
  */
-
-#define DIGRAPHS
-#define TRIGRAPHS
 
 /* ISO C11 section 5.2.1 defines source character set, specifically:
  *

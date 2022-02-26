@@ -1,7 +1,8 @@
 /*
  * iocccsize - IOCCC Source Size Tool
  *
- * Public Domain 1992, 2015, 2018, 2019, 2021, 2022 by Anthony Howe.  All rights released.
+ * Public Domain 1992, 2022 by Anthony Howe.  All rights released.
+ * With IOCCC minor mods in 2019, 2022 by chongo (Landon Curt Noll) ^oo^
  */
 
 #ifndef __iocccsize_h__
