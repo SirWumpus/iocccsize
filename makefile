@@ -49,5 +49,5 @@ version:
 tar: version
 	git archive --format=tar.gz --prefix=${PROJ}-${VERSION}/ ${VERSION} >../${PROJ}-${VERSION}.tar.gz
 
-iocccsize$E: err.h iocccsize.h iocccsize.c
+iocccsize$E: iocccsize.h iocccsize.c
 	${CC} ${CFLAGS} ${CPPFLAGS} -DVERSION='"'${VERSION}'"' -DWITH_MAIN -oiocccsize$E iocccsize.c ${LIBS}
