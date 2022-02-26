@@ -45,10 +45,10 @@ shift $(($OPTIND - 1))
 #        usage
 #fi
 
-make ${__build} all
+eval make "${__build}" all
 
-if [ ! -d ${TESTDIR} ]; then
-	mkdir ${TESTDIR}
+if [ ! -d "${TESTDIR}" ]; then
+	mkdir -p "${TESTDIR}"
 fi
 
 # Change DIGRAPHS and TRIGRAPHS according to limit_ioccc.h
@@ -63,7 +63,7 @@ get_wc()
 {
 	typeset file="$1"
 	typeset field="$2"
-	wc $file 2>/dev/null | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
+	wc "$file" 2>/dev/null | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f"$field"
 }
 
 test_size()
@@ -73,18 +73,18 @@ test_size()
 	typeset gross_count
 	typeset got
 
-	got=$($__tool $__tool_args $file 2>/dev/null)
+	got=$("$__tool" "$__tool_args" "$file" 2>/dev/null)
 	if $__verbose ; then
-		gross_count=$(echo $got | cut -d' ' -f2)
-		bytes=$(get_wc $file 3 $filter)
+		gross_count=$(echo "$got" | cut -d' ' -f2)
+		bytes=$(get_wc "$file" 3)
 		if [ $gross_count != $bytes ]; then
 			echo "FAIL $file: got $gross_count != wc $bytes"
 			EXIT_CODE=1
 			return
 		fi
 	else
-		got=$(echo $got | cut -d' ' -f1)
-		expect=$(echo $expect | cut -d' ' -f1)
+		got=$(echo "$got" | cut -d' ' -f1)
+		expect=$(echo "$expect" | cut -d' ' -f1)
 	fi
 	if [ "$expect" = "$got" ]; then
 		echo "-OK- $file: $got"
@@ -96,17 +96,17 @@ test_size()
 
 #######################################################################
 
-printf 'int x;\r\n' >${TESTDIR}/crlf.c
+printf 'int x;\r\n' >"${TESTDIR}/crlf.c"
 test_size crlf.c "2 8 1"
 
 #######################################################################
 
-printf 'char str[] = "טיר";\r\n' >${TESTDIR}/utf8.c
+printf 'char str[] = "טיר";\r\n' >"${TESTDIR}/utf8.c"
 test_size utf8.c "12 21 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/splitline0.c
+cat <<EOF >"${TESTDIR}/splitline0.c"
 #define FOO \\
     int a = 666;
 FOO;
@@ -115,7 +115,7 @@ test_size splitline0.c "19 36 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment0.c
+cat <<EOF >"${TESTDIR}/comment0.c"
 // comment one line "with a comment string" inside
 int x;
 EOF
@@ -123,7 +123,7 @@ test_size comment0.c "44 58 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment1.c
+cat <<EOF >"${TESTDIR}/comment1.c"
 /* comment block same line 'with a comment string' */
 int x;
 EOF
@@ -131,7 +131,7 @@ test_size comment1.c "46 61 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment2.c
+cat <<EOF >"${TESTDIR}/comment2.c"
 /*
 comment block
 multiline
@@ -142,35 +142,35 @@ test_size comment2.c "27 37 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment3.c
+cat <<EOF >"${TESTDIR}/comment3.c"
 a//foo
 EOF
 test_size comment3.c "6 7 0"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment4.c
+cat <<EOF >"${TESTDIR}/comment4.c"
 /*/ int if for /*/
 EOF
 test_size comment4.c "14 19 0"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment5.c
+cat <<EOF >"${TESTDIR}/comment5.c"
 '"' "/*" foobar "*/"
 EOF
 test_size comment5.c "17 21 0"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment6.c
+cat <<EOF >"${TESTDIR}/comment6.c"
 char str[] = "string /* with */ comment";
 EOF
 test_size comment6.c "30 42 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/comment7.c
+cat <<EOF >"${TESTDIR}/comment7.c"
 // comment with backslash newline \\
 int a = 666;
 EOF
@@ -178,28 +178,28 @@ test_size comment7.c "37 49 0"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/quote0.c
+cat <<EOF >"${TESTDIR}/quote0.c"
 char str[] = "and\"or";
 EOF
 test_size quote0.c "16 24 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/quote1.c
+cat <<EOF >"${TESTDIR}/quote1.c"
 char squote = '\'';
 EOF
 test_size quote1.c "12 20 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/quote2.c
+cat <<EOF >"${TESTDIR}/quote2.c"
 char str[] = "'xor'";
 EOF
 test_size quote2.c "14 22 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/digraph.c
+cat <<EOF >"${TESTDIR}/digraph.c"
 char str<::> = "'xor'";
 EOF
 if $DIGRAPHS; then
@@ -210,7 +210,7 @@ fi
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/trigraph0.c
+cat <<EOF >"${TESTDIR}/trigraph0.c"
 char str??(??) = "'xor'";
 EOF
 if $TRIGRAPHS; then
@@ -222,7 +222,7 @@ fi
 #######################################################################
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
-cat <<EOF >${TESTDIR}/trigraph1.c
+cat <<EOF >"${TESTDIR}/trigraph1.c"
 // Will the next line be executed????????????????/
 int a = 666;
 EOF
@@ -235,7 +235,7 @@ fi
 #######################################################################
 
 # Example from https://en.wikipedia.org/wiki/Digraphs_and_trigraphs#C
-cat <<EOF >${TESTDIR}/trigraph2.c
+cat <<EOF >"${TESTDIR}/trigraph2.c"
 /??/
 * A comment *??/
 /
@@ -248,7 +248,7 @@ fi
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/trigraph3.c
+cat <<EOF >"${TESTDIR}/trigraph3.c"
 #define FOO ??/
     int a = 666;
 FOO;
@@ -261,7 +261,7 @@ fi
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/main0.c
+cat <<EOF >"${TESTDIR}/main0.c"
 int
 main(int argc, char **argv)
 {
@@ -272,7 +272,7 @@ test_size main0.c "22 47 4"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/hello.c
+cat <<EOF >"${TESTDIR}/hello.c"
 #include <stdio.h>
 
 int
@@ -288,7 +288,7 @@ test_size hello.c "58 101 6"
 
 # Digraph for #include and curlys.  Digraphs are tokens and are not
 # translated like trigraphs.
-cat <<EOF >${TESTDIR}/hello_digraph.c
+cat <<EOF >"${TESTDIR}/hello_digraph.c"
 %:    include <stdio.h>
 
 int
@@ -308,7 +308,7 @@ fi
 
 # Trigraph for #include and curlys.  Trigraphs are translated, unlike
 # digraphs which are tokens.
-cat <<EOF >${TESTDIR}/hello_trigraph.c
+cat <<EOF >"${TESTDIR}/hello_trigraph.c"
 ??=    include <stdio.h>
 
 int
@@ -326,14 +326,14 @@ fi
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/include0.c
+cat <<EOF >"${TESTDIR}/include0.c"
 #  include <stdio.h>
 EOF
 test_size include0.c "10 21 1"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/include1.c
+cat <<EOF >"${TESTDIR}/include1.c"
 #  include <stdio.h>
 #/*hi*/include <ctype.h>
 EOF
@@ -341,7 +341,7 @@ test_size include1.c "26 46 2"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/curly0.c
+cat <<EOF >"${TESTDIR}/curly0.c"
 char str = "{ curly } ";
 EOF
 test_size curly0.c "12 25 1"
@@ -349,7 +349,7 @@ test_size curly0.c "12 25 1"
 #######################################################################
 
 # No spaces after curly braces in array initialiser.
-cat <<EOF >${TESTDIR}/curly1.c
+cat <<EOF >"${TESTDIR}/curly1.c"
 #include <stdlib.h>
 
 #define STRLEN(s)		(sizeof (s)-1)
@@ -369,7 +369,7 @@ test_size curly1.c "119 192 6"
 #######################################################################
 
 # Spaces after curly braces in array initialiser.
-cat <<EOF >${TESTDIR}/curly2.c
+cat <<EOF >"${TESTDIR}/curly2.c"
 #include <stdlib.h>
 
 #define STRLEN(s)		(sizeof (s)-1)
@@ -388,7 +388,7 @@ test_size curly2.c "113 196 6"
 
 #######################################################################
 
-cat <<EOF >${TESTDIR}/semicolon0.c
+cat <<EOF >"${TESTDIR}/semicolon0.c"
 char str = "; xor; ";
 EOF
 test_size semicolon0.c "10 22 1"
@@ -396,7 +396,7 @@ test_size semicolon0.c "10 22 1"
 #######################################################################
 
 # Spaces after semicolons in for( ; ; ).
-cat <<EOF >${TESTDIR}/semicolon1.c
+cat <<EOF >"${TESTDIR}/semicolon1.c"
 #include <stdio.h>
 
 int
@@ -414,7 +414,7 @@ test_size semicolon1.c "65 133 8"
 #######################################################################
 
 # No spaces after semicolons in for(;;).
-cat <<EOF >${TESTDIR}/semicolon2.c
+cat <<EOF >"${TESTDIR}/semicolon2.c"
 #include <stdio.h>
 
 int
