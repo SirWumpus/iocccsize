@@ -14,7 +14,7 @@ top_srcdir	:= ..
 PROJ 		:= iocccsize
 TAR_I		:= -T
 CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic ${WERROR}
-CPPFLAGS	:= -DMKIOCCCENTRY_USE
+CPPFLAGS	:=
 LIBS		:=
 
 VERSION		:= $$(git describe --tags)
@@ -44,10 +44,10 @@ test: build
 	./${PROJ}-test.sh -v
 
 version:
-	git describe --tags --abbrev=0 >VERSION
+	git describe --tags >VERSION
 
 tar: version
 	git archive --format=tar.gz --prefix=${PROJ}-${VERSION}/ ${VERSION} >../${PROJ}-${VERSION}.tar.gz
 
-${PROJ}$E: ${PROJ}.c
-	${CC} ${CFLAGS} ${CPPFLAGS} -DWITH_MAIN -o$*$E $*.c
+iocccsize$E: err.h iocccsize.h iocccsize.c
+	${CC} ${CFLAGS} ${CPPFLAGS} -DVERSION='"'${VERSION}'"' -DWITH_MAIN -o$*$E $*.c ${LIBS}

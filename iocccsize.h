@@ -14,28 +14,31 @@ extern "C" {
 
 #include <stddef.h>
 
-#ifndef VERSION
-#define VERSION "28.3 2021-12-29"	/* use format: major.minor YYYY-MM-DD */
-#endif
-
-#ifdef MKIOCCCENTRY_USE
+/* IOCCC tool chain, see https://github.com/ioccc-src/mkiocccentry */
+#if defined(MKIOCCCENTRY_USE)
+# include "limit_ioccc.h"		/* Can override our defines. */
+#else
 # define DIGRAPHS			/* Digraphs count as 1 for Rule 2b.*/
 # define TRIGRAPHS			/* Trigraphs count as 1 for Rule 2b.*/
-#else
-# undef DIGRAPHS			/* Digraphs count as 2 for Rule 2b.*/
-# undef TRIGRAPHS			/* Trigraphs count as 3 for Rule 2b.*/
+#endif
+
+/* Official contest VERSION defined by limit_ioccc.h,
+ * else the official git repository version tag.
+ */
+#ifndef VERSION
+# define VERSION "unofficial"
 #endif
 
 #ifndef WORD_BUFFER_SIZE
-#define WORD_BUFFER_SIZE	256
+# define WORD_BUFFER_SIZE	256
 #endif
 
 #ifndef RULE_2A_SIZE
-#define RULE_2A_SIZE		4096	/* IOCCC Rule 2a */
+# define RULE_2A_SIZE		4096	/* IOCCC Rule 2a */
 #endif
 
 #ifndef RULE_2B_SIZE
-#define RULE_2B_SIZE		2053	/* IOCCC Rule 2b */
+# define RULE_2B_SIZE		2053	/* IOCCC Rule 2b */
 #endif
 
 typedef struct {
