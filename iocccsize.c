@@ -518,15 +518,15 @@ main(int argc, char **argv)
 	 * hopes it will reduce the number of entries that violate the IOCCC
 	 * size rules.
 	 */
-	if (MAX_SIZE < counts.gross) {
+	if (RULE_2A_SIZE < counts.gross) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, MAX_SIZE);
+			(void) fprintf(stderr, "warning: size %zu exceeds Rule 2a %u\n", counts.gross, RULE_2A_SIZE);
 		}
 		rc = EXIT_FAILURE;
 	}
-	if (MAX_COUNT < counts.net) {
+	if (RULE_2B_SIZE < counts.net) {
 		if (debug == 0) {
-			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, MAX_COUNT);
+			(void) fprintf(stderr, "warning: count %zu exceeds Rule 2b %u\n", counts.net, RULE_2B_SIZE);
 		}
 		rc = EXIT_FAILURE;
 	}

@@ -21,12 +21,12 @@ extern "C" {
 #define WORD_BUFFER_SIZE	64
 #endif
 
-#ifndef MAX_SIZE
-#define MAX_SIZE		4096	/* IOCCC Rule 2a */
+#ifndef RULE_2A_SIZE
+#define RULE_2A_SIZE		4096	/* IOCCC Rule 2a */
 #endif
 
-#ifndef MAX_COUNT
-#define MAX_COUNT		2053	/* IOCCC Rule 2b */
+#ifndef RULE_2B_SIZE
+#define RULE_2B_SIZE		2053	/* IOCCC Rule 2b */
 #endif
 
 typedef struct {
