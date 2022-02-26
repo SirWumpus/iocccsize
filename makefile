@@ -38,8 +38,8 @@ build: ${PROJ}
 clean:
 	-rm -f ${PROJ}.i ${PROJ}$O *.stackdump *.core 2>/dev/null
 
-distclean: clean
-	-rm -fr ${PROJ}$E test a.out VERSION 2>/dev/null
+distclean clobber: clean
+	-rm -fr ${PROJ}$E ${PROJ}.dSYM test-${PROJ} a.out VERSION 2>/dev/null
 
 test: build
 	./${PROJ}-test.sh -v
