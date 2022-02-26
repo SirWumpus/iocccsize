@@ -13,9 +13,8 @@ E :=
 top_srcdir	:= ..
 PROJ 		:= iocccsize
 TAR_I		:= -T
-CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic
-CFLAGS89	:= -g -std=c89 -Wall -Wextra -Wno-char-subscripts -pedantic
-CPPFLAGS	:=
+CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic ${WERROR}
+CPPFLAGS	:= -DMKIOCCCENTRY_USE
 LIBS		:=
 
 VERSION		:= $$(git describe --tags)

@@ -50,6 +50,14 @@ if [ ! -d ${TESTDIR} ]; then
 	mkdir ${TESTDIR}
 fi
 
+# Change DIGRAPHS and TRIGRAPHS according to limit_ioccc.h
+if [ -f limit_ioccc.sh ]; then
+	source limit_ioccc.sh
+else
+	export DIGRAPHS=true		# Assume #define DIGRAPHS.
+	export TRIGRAPHS=true		# Assume #define TRIGRAPHS.
+fi
+
 get_wc()
 {
 	typeset file="$1"
@@ -191,14 +199,22 @@ test_size quote2.c "14 22 1"
 cat <<EOF >${TESTDIR}/digraph.c
 char str<::> = "'xor'";
 EOF
-test_size digraph.c "14 24 1"
+if $DIGRAPHS; then
+	test_size digraph.c "14 24 1"
+else
+	test_size digraph.c "16 24 1"
+fi
 
 #######################################################################
 
 cat <<EOF >${TESTDIR}/trigraph0.c
 char str??(??) = "'xor'";
 EOF
-test_size trigraph0.c "14 26 1"
+if $TRIGRAPHS; then
+	test_size trigraph0.c "14 26 1"
+else
+	test_size trigraph0.c "18 26 1"
+fi
 
 #######################################################################
 
@@ -207,7 +223,11 @@ cat <<EOF >${TESTDIR}/trigraph1.c
 // Will the next line be executed????????????????/
 int a = 666;
 EOF
-test_size trigraph1.c "49 64 0"
+if $TRIGRAPHS; then
+	test_size trigraph1.c "49 64 0"
+else
+	test_size trigraph1.c "50 64 1"
+fi
 
 #######################################################################
 
@@ -217,7 +237,11 @@ cat <<EOF >${TESTDIR}/trigraph2.c
 * A comment *??/
 /
 EOF
-test_size trigraph2.c "12 24 0"
+if $TRIGRAPHS; then
+	test_size trigraph2.c "12 24 0"
+else
+	test_size trigraph2.c "18 24 0"
+fi
 
 #######################################################################
 
@@ -226,7 +250,11 @@ cat <<EOF >${TESTDIR}/trigraph3.c
     int a = 666;
 FOO;
 EOF
-test_size trigraph3.c "19 38 1"
+if $TRIGRAPHS; then
+	test_size trigraph3.c "19 38 1"
+else
+	test_size trigraph3.c "22 38 1"
+fi
 
 #######################################################################
 
@@ -267,7 +295,11 @@ main(int argc, char **argv)
 	return 0;
 %>
 EOF
-test_size hello_digraph.c "60 108 6"
+if $DIGRAPHS; then
+	test_size hello_digraph.c "60 108 6"
+else
+	test_size hello_digraph.c "70 108 5"	# bug? %:include a keyword?
+fi
 
 #######################################################################
 
@@ -283,7 +315,11 @@ main(int argc, char **argv)
 	return 0;
 ??>
 EOF
-test_size hello_trigraph.c "58 111 6"
+if $TRIGRAPHS; then
+	test_size hello_trigraph.c "58 111 6"
+else
+	test_size hello_trigraph.c "73 111 5"	# bug? ??=include a keyword?
+fi
 
 #######################################################################
 

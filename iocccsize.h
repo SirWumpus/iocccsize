@@ -18,6 +18,14 @@ extern "C" {
 #define VERSION "28.3 2021-12-29"	/* use format: major.minor YYYY-MM-DD */
 #endif
 
+#ifdef MKIOCCCENTRY_USE
+# define DIGRAPHS			/* Digraphs count as 1 for Rule 2b.*/
+# define TRIGRAPHS			/* Trigraphs count as 1 for Rule 2b.*/
+#else
+# undef DIGRAPHS			/* Digraphs count as 2 for Rule 2b.*/
+# undef TRIGRAPHS			/* Trigraphs count as 3 for Rule 2b.*/
+#endif
+
 #ifndef WORD_BUFFER_SIZE
 #define WORD_BUFFER_SIZE	256
 #endif
