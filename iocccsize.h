@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 #ifndef RULE_2B_SIZE
-# define RULE_2B_SIZE		2053	/* IOCCC Rule 2b */
+# define RULE_2B_SIZE		2503	/* IOCCC Rule 2b */
 #endif
 
 typedef struct {

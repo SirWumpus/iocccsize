@@ -31,9 +31,8 @@
  *	The entry's gross size in bytes must be less than equal to 4096
  *	bytes in length.
  *
- *	The entry's net size in bytes must be less than equal to 2053
- *	bytes (first prime after 2048).  The net size is computed as
- *	follows:
+ *	The entry's net size in bytes must be less than equal to 2503
+ *	bytes.  The net size is computed as follows:
  *
  *	The size tool counts most C reserved words (keyword, secondary,
  *	and selected preprocessor keywords) as 1.  The size tool counts all
