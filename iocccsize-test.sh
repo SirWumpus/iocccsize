@@ -63,7 +63,7 @@ get_wc()
 {
 	typeset file="$1"
 	typeset field="$2"
-	wc $file | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
+	wc $file 2>/dev/null | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f$field
 }
 
 test_size()
