@@ -18,7 +18,7 @@ extern "C" {
 #endif
 
 #ifndef WORD_BUFFER_SIZE
-#define WORD_BUFFER_SIZE	64
+#define WORD_BUFFER_SIZE	256
 #endif
 
 #ifndef RULE_2A_SIZE
