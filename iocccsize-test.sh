@@ -87,12 +87,56 @@ test_size()
 		expect=$(echo "$expect" | cut -d' ' -f1)
 	fi
 	if [ "$expect" = "$got" ]; then
-		echo "-OK- $file: $got"
+		echo "-OK- text_size $file: $got"
 	else
-		echo "FAIL $file: got $got != expect $expect"
+		echo "FAIL text_size $file: got $got != expect $expect"
 		EXIT_CODE=1
 	fi
 }
+
+test_exit()
+{
+	typeset title="$1"
+	typeset expect="$2"
+	typeset got="$3"
+
+	if [ $expect -eq $got ]; then
+		echo "-OK- text_exit $title: $got"
+	else
+		echo "FAIL text_exit $title: got $got != expect $expect"
+		EXIT_CODE=1
+	fi
+}
+
+#######################################################################
+
+"$__tool" -? 2>/dev/null
+test_exit "usage" 2 $?
+
+#######################################################################
+
+"$__tool" -h 2>/dev/null
+test_exit "help" 2 $?
+
+#######################################################################
+
+"$__tool" -V >/dev/null 2>/dev/null
+test_exit "version" 3 $?
+
+#######################################################################
+
+"$__tool" -6 2>/dev/null
+test_exit "prisoner" 6 $?
+
+#######################################################################
+
+"$__tool" -vWOOT 2>/dev/null
+test_exit "bad_arg" 4 $?
+
+#######################################################################
+
+"$__tool" /tmp/WOOT 2>/dev/null
+test_exit "bad_file" 6 $?
 
 #######################################################################
 
