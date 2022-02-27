@@ -521,7 +521,7 @@ main(int argc, char **argv)
 		case 'h':
 		default:
 			(void) fprintf(stderr, "%s%s\n", usage, exits);
-			exit(4); /*ooo*/
+			exit(2); /*ooo*/
 		}
 	}
 
