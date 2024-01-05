@@ -28,7 +28,7 @@
  *	length is written to standard error; with -v option the net
  *	length, gross length, and matched keyword count are written.
  *
- *	The entry's gross size in bytes must be less than equal to 4096
+ *	The entry's gross size in bytes must be less than equal to 4993
  *	bytes in length.
  *
  *	The entry's net size in bytes must be less than equal to 2503
@@ -496,7 +496,7 @@ main(int argc, char **argv)
 	RuleCount counts;
 	FILE *fp_in = stdin;
 
-	while ((ch = getopt(argc, argv, "6ihv:V")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihrv:V")) != -1) {
 		switch (ch) {
 		case 'i': /* ignored for backward compatibility */
 			break;
@@ -521,6 +521,7 @@ main(int argc, char **argv)
 		case 'h':
 		default:
 			(void) fprintf(stderr, "%s%s\n", usage, exits);
+			(void) fprintf(stderr, "Rule size 2a <= %u, 2b <= %u\n", RULE_2A_SIZE, RULE_2B_SIZE);
 			exit(2); /*ooo*/
 		}
 	}
