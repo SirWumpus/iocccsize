@@ -34,11 +34,11 @@ extern "C" {
 #endif
 
 #ifndef RULE_2A_SIZE
-# define RULE_2A_SIZE		4096	/* IOCCC Rule 2a */
+# define RULE_2A_SIZE		4993	/* IOCCC Rule 2a, pre-2024 4096 */
 #endif
 
 #ifndef RULE_2B_SIZE
-# define RULE_2B_SIZE		2503	/* IOCCC Rule 2b */
+# define RULE_2B_SIZE		2503	/* IOCCC Rule 2b, pre-2024 2053 */
 #endif
 
 typedef struct {

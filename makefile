@@ -16,6 +16,8 @@ TAR_I		:= -T
 CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic ${WERROR}
 CPPFLAGS	:=
 LIBS		:=
+EPREFIX		:= ${HOME}
+BINDIR		:= ${EPREFIX}/bin
 
 VERSION		:= $$(git describe --tags)
 
@@ -42,6 +44,10 @@ distclean clobber: clean
 
 test: build
 	./${PROJ}-test.sh -v
+
+install: build
+	install -d ${BINDIR}
+	install -p ${PROJ}$E ${BINDIR}
 
 version:
 	git describe --tags >VERSION
