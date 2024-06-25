@@ -233,12 +233,12 @@ rule_count(FILE *fp_in)
 			counts.rule_2a_size++;
 			continue;
 		}
-#ifdef ASCII_ONLY
 		if (ch == '\0') {
 			counts.rule_2a_size++;
 			counts.nul++;
 			continue;
 		}
+#ifdef ASCII_ONLY
 		if (128 <= ch) {
 			counts.rule_2a_size++;
 			counts.high_bit++;
@@ -251,15 +251,15 @@ rule_count(FILE *fp_in)
 			/* Discard bare CR and those part of CRLF. */
 			counts.rule_2a_size++;
 		}
-#ifdef ASCII_ONLY
 		if (next_ch == '\0') {
-			(void) ungetc(ch);
+			(void) ungetc(ch, fp_in);
 			counts.rule_2a_size++;
 			counts.nul++;
 			continue;
 		}
+#ifdef ASCII_ONLY
 		if (128 <= next_ch) {
-			(void) ungetc(ch);
+			(void) ungetc(ch, fp_in);
 			counts.rule_2a_size++;
 			counts.high_bit++;
 			continue;
