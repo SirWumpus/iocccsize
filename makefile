@@ -13,7 +13,8 @@ E :=
 top_srcdir	:= ..
 PROJ 		:= iocccsize
 TAR_I		:= -T
-CFLAGS		:= -g -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic ${WERROR}
+DBG		:= -DNDEBUG
+CFLAGS		:= -std=c11 -Wall -Wextra -Wno-char-subscripts -pedantic ${WERROR} ${DBG}
 CPPFLAGS	:=
 LIBS		:=
 EPREFIX		:= ${HOME}
