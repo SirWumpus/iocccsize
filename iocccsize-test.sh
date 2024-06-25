@@ -145,7 +145,7 @@ test_size crlf.c "2 8 1"
 
 #######################################################################
 
-printf 'char str[] = "���";\r\n' >"${TESTDIR}/utf8.c"
+printf 'char str[] = "èéø";\r\n' >"${TESTDIR}/utf8.c"
 test_size utf8.c "12 21 1"
 
 #######################################################################
@@ -472,6 +472,37 @@ main(int argc, char **argv)
 }
 EOF
 test_size semicolon2.c "67 127 8"
+
+#######################################################################
+
+# String literal with multibyte charaters.
+cat <<EOF >"${TESTDIR}/hello-jp.c"
+#include <stdio.h>
+
+int
+main(int argc, char **argv)
+{
+	(void) printf("こんにちは世界！\n");
+	return 0;
+}
+EOF
+test_size hello-jp.c "71 113 6"
+
+#######################################################################
+
+# Unicode identifier
+cat <<EOF >"${TESTDIR}/hello-jp2.c"
+#include <stdio.h>
+
+int
+main(int argc, char **argv)
+{
+	char str_こんにちは世界！[] = "Kon'nichiwa sekai!\n";
+	(void) printf(str_こんにちは世界！);
+	return 0;
+}
+EOF
+test_size hello-jp2.c "124 176 7"
 
 #######################################################################
 # END
