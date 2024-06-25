@@ -444,11 +444,14 @@ rule_count(FILE *fp_in)
 
 		/* Collect next word not in a string or comment. */
 		if (IS_CODE && (isalnum(ch) || ch == '_' || ch == '#')) {
+			word[wordi++] = (char) ch;
 			if (sizeof (word) <= wordi) {
+				if (rule_count_debug > 1) {
+					(void) fprintf(stderr, "~~word buffer %*s\n", (int) sizeof (word), word);
+				}
 				counts.word_overflow++;
 				wordi = 0;
 			}
-			word[wordi++] = (char) ch;
 			word[wordi] = '\0';
 		}
 
