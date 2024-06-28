@@ -47,7 +47,7 @@
  *	basic character sets shall fit in a byte.
  *
  * Note however that string literals and comments could contain non-ASCII
- * (consider non-English developers writing native langauge comments):
+ * (consider non-English developers writing native language comments):
  *
  *	If any other characters are encountered in a source file (except
  *	in an identifier, a character constant, a string literal, a header
@@ -446,6 +446,15 @@ rule_count(FILE *fp_in)
 		if (IS_CODE && (isalnum(ch) || ch == '_' || ch == '#')) {
 			word[wordi++] = (char) ch;
 			if (sizeof (word) <= wordi) {
+				/* ISO C11 section 5.2.4.1 Translation limits, identifiers
+				 * can have 63 significant initial characters, which can be
+				 * multibyte.  The C keywords are all ASCII, longest is 14
+				 * bytes.
+				 *
+				 * We only care about the C keywords and not the identifiers,
+				 * so the buffer can overflow regularly as long words or
+				 * identifiers are ignored.
+				 */
 				if (rule_count_debug > 1) {
 					(void) fprintf(stderr, "~~word buffer %*s\n", (int) sizeof (word), word);
 				}
