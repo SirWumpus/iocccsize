@@ -224,6 +224,9 @@ rule_count(FILE *fp_in)
 	RuleCount counts = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
 
+	/* More to silence Valgrind and be safe. */
+	(void) memset(word, 0, sizeof (word));
+
 /* If quote == NO_STRING (0) and is_comment == NO_COMMENT (0) then its code. */
 #define IS_CODE	(quote == is_comment)
 
