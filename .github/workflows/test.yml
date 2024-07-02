@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: make CC=cc test
-      run: make test
+    - name: make test
+      run: make CC=cc test
     - name: make distclean
       run: make distclean
