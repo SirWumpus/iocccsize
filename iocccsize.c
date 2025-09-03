@@ -53,10 +53,7 @@
  *	in an identifier, a character constant, a string literal, a header
  *	name, a comment, or a preprocessing token that is never converted
  *	to a token), the behavior is undefined.
- *
- * Probably best to leave as-is, count them, and let the compiler sort it.
  */
-#undef ASCII_ONLY
 
 /*
  * IOCCC Judge's remarks:
@@ -251,14 +248,6 @@ rule_count(FILE *fp_in)
 			counts.nul++;
 			continue;
 		}
-#ifdef ASCII_ONLY
-		if (128 <= ch) {
-			counts.rule_2a_size++;
-			counts.high_bit++;
-			continue;
-		}
-#endif
-
 		/* Future gazing. */
 		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
@@ -270,15 +259,6 @@ rule_count(FILE *fp_in)
 			counts.nul++;
 			continue;
 		}
-#ifdef ASCII_ONLY
-		if (128 <= next_ch) {
-			(void) ungetc(ch, fp_in);
-			counts.rule_2a_size++;
-			counts.high_bit++;
-			continue;
-		}
-#endif
-
 #ifdef TRIGRAPHS
 		if (ch == '?' && next_ch == '?') {
 			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
