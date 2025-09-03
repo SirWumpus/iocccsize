@@ -42,11 +42,12 @@ extern "C" {
 #endif
 
 typedef struct {
-	unsigned long rule_2a_size;
-	unsigned long rule_2b_size;
+	unsigned long rule_2a_size;	/* Bytes */
+	unsigned long rule_2b_size;	/* Bytes */
+	unsigned long rule_2a_chsize;	/* Characters */
+	unsigned long rule_2b_chsize;	/* Characters */
 	unsigned long keywords;		/* keyword count - for -v mode */
 	unsigned long nul;		/* Count NUL bytes seen. */
-	unsigned long high_bit;		/* Count non-ASCII high-bit set bytes. */
 	unsigned long bad_trigraph;	/* Count unknown trigraphs seen. */
 	unsigned long ungetc_error;	/* Count ungetc depth exceeded. */
 	unsigned long word_overflow;	/* Count word buffer overflows. */

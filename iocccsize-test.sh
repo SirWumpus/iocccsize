@@ -68,7 +68,8 @@ get_wc()
 {
 	typeset file="$1"
 	typeset field="$2"
-	wc "$file" 2>/dev/null | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f"$field"
+	typeset mb="$3"
+	wc -cwl ${mb} "$file" 2>/dev/null | sed -e's/^ *//; s/  */ /g' | cut -d' ' -f"$field"
 }
 
 test_size()
@@ -82,6 +83,7 @@ test_size()
 	if $__verbose ; then
 		gross_count=$(echo "$got" | cut -d' ' -f2)
 		bytes=$(get_wc "$file" 3)
+#		chars=$(get_wc "$file" 3 "-m")
 		if [ $gross_count != $bytes ]; then
 			echo "FAIL $file: got $gross_count != wc $bytes"
 			EXIT_CODE=1
@@ -146,13 +148,13 @@ test_exit "bad_file" 6 $?
 #######################################################################
 
 printf 'int x;\r\n' >"${TESTDIR}/crlf.c"
-test_size crlf.c "2 8 1"
+test_size crlf.c "2 8 2 8 1"
 
 #######################################################################
 
 # String literal with multibyte characters (mb2).
 printf 'char str[] = "èéø";\r\n' >"${TESTDIR}/utf8.c"
-test_size utf8.c "15 24 1"
+test_size utf8.c "15 24 12 21 1"
 
 #######################################################################
 
@@ -161,7 +163,7 @@ cat <<EOF >"${TESTDIR}/splitline0.c"
     int a = 666;
 FOO;
 EOF
-test_size splitline0.c "19 36 1"
+test_size splitline0.c "19 36 19 36 1"
 
 #######################################################################
 
@@ -169,7 +171,7 @@ cat <<EOF >"${TESTDIR}/comment0.c"
 // comment one line "with a comment string" inside
 int x;
 EOF
-test_size comment0.c "44 58 1"
+test_size comment0.c "44 58 44 58 1"
 
 #######################################################################
 
@@ -177,7 +179,7 @@ cat <<EOF >"${TESTDIR}/comment1.c"
 /* comment block same line 'with a comment string' */
 int x;
 EOF
-test_size comment1.c "46 61 1"
+test_size comment1.c "46 61 46 61 1"
 
 #######################################################################
 
@@ -188,35 +190,35 @@ multiline
 */
 int x;
 EOF
-test_size comment2.c "27 37 1"
+test_size comment2.c "27 37 27 37 1"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/comment3.c"
 a//foo
 EOF
-test_size comment3.c "6 7 0"
+test_size comment3.c "6 7 6 7 0"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/comment4.c"
 /*/ int if for /*/
 EOF
-test_size comment4.c "14 19 0"
+test_size comment4.c "14 19 14 19 0"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/comment5.c"
 '"' "/*" foobar "*/"
 EOF
-test_size comment5.c "17 21 0"
+test_size comment5.c "17 21 17 21 0"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/comment6.c"
 char str[] = "string /* with */ comment";
 EOF
-test_size comment6.c "30 42 1"
+test_size comment6.c "30 42 30 42 1"
 
 #######################################################################
 
@@ -224,28 +226,28 @@ cat <<EOF >"${TESTDIR}/comment7.c"
 // comment with backslash newline \\
 int a = 666;
 EOF
-test_size comment7.c "37 49 0"
+test_size comment7.c "37 49 37 49 0"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/quote0.c"
 char str[] = "and\"or";
 EOF
-test_size quote0.c "16 24 1"
+test_size quote0.c "16 24 16 24 1"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/quote1.c"
 char squote = '\'';
 EOF
-test_size quote1.c "12 20 1"
+test_size quote1.c "12 20 12 20 1"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/quote2.c"
 char str[] = "'xor'";
 EOF
-test_size quote2.c "14 22 1"
+test_size quote2.c "14 22 14 22 1"
 
 #######################################################################
 
@@ -253,9 +255,9 @@ cat <<EOF >"${TESTDIR}/digraph.c"
 char str<::> = "'xor'";
 EOF
 if $DIGRAPHS; then
-	test_size digraph.c "14 24 1"
+	test_size digraph.c "14 24 14 24 1"
 else
-	test_size digraph.c "16 24 1"
+	test_size digraph.c "16 24 16 24 1"
 fi
 
 #######################################################################
@@ -264,9 +266,9 @@ cat <<EOF >"${TESTDIR}/trigraph0.c"
 char str??(??) = "'xor'";
 EOF
 if $TRIGRAPHS; then
-	test_size trigraph0.c "14 26 1"
+	test_size trigraph0.c "14 26 14 26 1"
 else
-	test_size trigraph0.c "18 26 1"
+	test_size trigraph0.c "18 26 18 26 1"
 fi
 
 #######################################################################
@@ -277,9 +279,9 @@ cat <<EOF >"${TESTDIR}/trigraph1.c"
 int a = 666;
 EOF
 if $TRIGRAPHS; then
-	test_size trigraph1.c "49 64 0"
+	test_size trigraph1.c "49 64 49 64 0"
 else
-	test_size trigraph1.c "50 64 1"
+	test_size trigraph1.c "50 64 50 64 1"
 fi
 
 #######################################################################
@@ -291,9 +293,9 @@ cat <<EOF >"${TESTDIR}/trigraph2.c"
 /
 EOF
 if $TRIGRAPHS; then
-	test_size trigraph2.c "12 24 0"
+	test_size trigraph2.c "12 24 12 24 0"
 else
-	test_size trigraph2.c "18 24 0"
+	test_size trigraph2.c "18 24 18 24 0"
 fi
 
 #######################################################################
@@ -304,9 +306,9 @@ cat <<EOF >"${TESTDIR}/trigraph3.c"
 FOO;
 EOF
 if $TRIGRAPHS; then
-	test_size trigraph3.c "19 38 1"
+	test_size trigraph3.c "19 38 19 38 1"
 else
-	test_size trigraph3.c "22 38 1"
+	test_size trigraph3.c "22 38 22 38 1"
 fi
 
 #######################################################################
@@ -318,7 +320,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size main0.c "22 47 4"
+test_size main0.c "22 47 22 47 4"
 
 #######################################################################
 
@@ -332,7 +334,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size hello.c "58 101 6"
+test_size hello.c "58 101 58 101 6"
 
 #######################################################################
 
@@ -349,9 +351,9 @@ main(int argc, char **argv)
 %>
 EOF
 if $DIGRAPHS; then
-	test_size hello_digraph.c "60 108 6"
+	test_size hello_digraph.c "60 108 60 108 6"
 else
-	test_size hello_digraph.c "70 108 5"	# bug? %:include a keyword?
+	test_size hello_digraph.c "70 108 70 108 5"	# bug? %:include a keyword?
 fi
 
 #######################################################################
@@ -369,9 +371,9 @@ main(int argc, char **argv)
 ??>
 EOF
 if $TRIGRAPHS; then
-	test_size hello_trigraph.c "58 111 6"
+	test_size hello_trigraph.c "58 111 58 111 6"
 else
-	test_size hello_trigraph.c "73 111 5"	# bug? ??=include a keyword?
+	test_size hello_trigraph.c "73 111 73 111 5"	# bug? ??=include a keyword?
 fi
 
 #######################################################################
@@ -379,7 +381,7 @@ fi
 cat <<EOF >"${TESTDIR}/include0.c"
 #  include <stdio.h>
 EOF
-test_size include0.c "10 21 1"
+test_size include0.c "10 21 10 21 1"
 
 #######################################################################
 
@@ -387,14 +389,14 @@ cat <<EOF >"${TESTDIR}/include1.c"
 #  include <stdio.h>
 #/*hi*/include <ctype.h>
 EOF
-test_size include1.c "26 46 2"
+test_size include1.c "26 46 26 46 2"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/curly0.c"
 char str = "{ curly } ";
 EOF
-test_size curly0.c "12 25 1"
+test_size curly0.c "12 25 12 25 1"
 
 #######################################################################
 
@@ -414,7 +416,7 @@ Word list[] = {
 	{0, NULL}
 };
 EOF
-test_size curly1.c "119 192 6"
+test_size curly1.c "119 192 119 192 6"
 
 #######################################################################
 
@@ -434,14 +436,14 @@ Word list[] = {
 	{ 0, NULL}
 } ;
 EOF
-test_size curly2.c "113 196 6"
+test_size curly2.c "113 196 113 196 6"
 
 #######################################################################
 
 cat <<EOF >"${TESTDIR}/semicolon0.c"
 char str = "; xor; ";
 EOF
-test_size semicolon0.c "10 22 1"
+test_size semicolon0.c "10 22 10 22 1"
 
 #######################################################################
 
@@ -459,7 +461,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size semicolon1.c "65 133 8"
+test_size semicolon1.c "65 133 65 133 8"
 
 #######################################################################
 
@@ -477,7 +479,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size semicolon2.c "67 127 8"
+test_size semicolon2.c "67 127 67 127 8"
 
 #######################################################################
 
@@ -492,7 +494,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size hello-jp.c "71 113 6"
+test_size hello-jp.c "71 113 55 97 6"
 
 #######################################################################
 
@@ -508,7 +510,7 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size hello-jp2.c "124 176 7"
+test_size hello-jp2.c "124 176 92 144 7"
 
 #######################################################################
 
@@ -527,8 +529,26 @@ main(int argc, char **argv)
 	return 0;
 }
 EOF
-test_size hello-jp3.c "313 398 7"
+test_size hello-jp3.c "313 398 231 316 7"
 
+#######################################################################
+
+# Emoji Unicode identifier; see IOCCC28 2024/howe.
+cat <<EOF >"${TESTDIR}/hello-emoji.c"
+#include <stdio.h>
+
+int
+main(int argc, char **argv)
+{
+	/* Emoji identifier, where an emoji is 4 bytes UTF-8 character.
+	 * There is nothing wrong with this source code.
+	 */
+	char 🔥[] = "Fire!\n";
+	(void) printf(🔥);
+	return 0;
+}
+EOF
+test_size hello-emoji.c "158 235 152 229 7"
 
 #######################################################################
 # END

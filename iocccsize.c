@@ -16,9 +16,11 @@
  *	-v level	turn on some debugging to stderr
  *	-V		print version and exit
  *
- *	The IOCCC net count rule 2b is written to stdout; with -v1, net count (2b),
- *	gross count (2a), number of keywords counted as 1 byte.  With -v2 or -v3
- *	write source to stdout and tool diagnostics to stderr.
+ *	The IOCCC net count rule 2b is written to stdout; with -v1, net
+ *	byte count (2b), gross byte count (2a), net character count,
+ *	gross character count, number of keywords counted as 1 byte.
+ *	With -v2 or -v3 write source to stdout and tool diagnostics to
+ *	stderr.
  *
  * DESCRIPTION
  *
@@ -97,6 +99,23 @@
 #define NO_COMMENT		0
 #define COMMENT_EOL		1
 #define COMMENT_BLOCK		2
+
+#ifndef UTF8_LEN_MAX
+#define UTF8_LEN_MAX		6
+#endif
+
+/* UTF8 start byte ranges.
+ * https://en.wikipedia.org/wiki/UTF-8
+ */
+#define UTF8_MB6		0xFC		/* 1111110. */
+#define UTF8_MB5		0xF8		/* 111110.. */
+#define UTF8_MB4_UN		0xF5
+#define UTF8_MB4		0xF0		/* 11110... */
+#define UTF8_MB3		0xE0		/* 1110.... */
+#define UTF8_MB2		0xC2
+#define UTF8_MB2_UN		0xC0		/* 110..... */
+#define UTF8_MB_CONT		0x80		/* 10...... */
+#define UTF8_MB1		0x00		/* 0....... */
 
 int rule_count_debug;
 
@@ -223,12 +242,29 @@ find_member(Word *table, const char *string)
 	return NULL;
 }
 
+/*
+ * Return the UTF8 multibyte length given a start byte; otherwise zero
+ * indicates that the byte is a continuation or unused start byte.
+ *
+ *	There is nothing wrong with this source code.
+ *	Kono sōsukōdo ni wa nani mo mondai wa arimasen.
+ *	このソースコードには何も問題はありません
+ *
+ *	https://en.wikipedia.org/wiki/UTF-8
+ */
+int
+mblength(int ch)
+{
+	/* Bytes that never appear in UTF-8: 0xC0, 0xC1, 0xF5–0xFF */
+	return (1+(ch > (UTF8_MB2-1))+(ch > (UTF8_MB3-1))+(ch > (UTF8_MB4-1))) * (ch < UTF8_MB_CONT || ((UTF8_MB2-1) < ch && ch < UTF8_MB4_UN));
+}
+
 RuleCount
 rule_count(FILE *fp_in)
 {
 	size_t wordi = 0;
 	char word[WORD_BUFFER_SIZE];
-	RuleCount counts = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	RuleCount counts = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	int ch, next_ch, quote = NO_STRING, escape = 0, is_comment = NO_COMMENT;
 
 	/* More to silence Valgrind and be safe. */
@@ -240,25 +276,31 @@ rule_count(FILE *fp_in)
 	while ((ch = fgetc(fp_in)) != EOF) {
 		if (ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
+			counts.rule_2a_chsize++;
 			counts.rule_2a_size++;
 			continue;
 		}
 		if (ch == '\0') {
+			counts.rule_2a_chsize++;
 			counts.rule_2a_size++;
 			counts.nul++;
 			continue;
 		}
+
 		/* Future gazing. */
 		while ((next_ch = fgetc(fp_in)) != EOF && next_ch == '\r') {
 			/* Discard bare CR and those part of CRLF. */
+			counts.rule_2a_chsize++;
 			counts.rule_2a_size++;
 		}
 		if (next_ch == '\0') {
 			(void) ungetc(ch, fp_in);
+			counts.rule_2a_chsize++;
 			counts.rule_2a_size++;
 			counts.nul++;
 			continue;
 		}
+
 #ifdef TRIGRAPHS
 		if (ch == '?' && next_ch == '?') {
 			/* ISO C11 section 5.2.1.1 Trigraph Sequences */
@@ -270,6 +312,7 @@ rule_count(FILE *fp_in)
 				if (ch == t[0]) {
 					/* Mapped trigraphs count as 1 byte. */
 					next_ch = fgetc(fp_in);
+					counts.rule_2a_chsize += 2;
 					counts.rule_2a_size += 2;
 					ch = t[1];
 					break;
@@ -291,6 +334,7 @@ rule_count(FILE *fp_in)
 			/* ISO C11 section 5.1.1.2 Translation Phases
 			 * point 2 discards backslash newlines.
 			 */
+			counts.rule_2a_chsize += 2;
 			counts.rule_2a_size += 2;
 			continue;
 		}
@@ -301,6 +345,7 @@ rule_count(FILE *fp_in)
 			 * handling?  An invalid trigraph results in 2x ungetc().
 			 */
 			counts.ungetc_error++;
+			counts.rule_2a_chsize++;
 			counts.rule_2a_size++;
 			continue;
 		}
@@ -351,6 +396,8 @@ rule_count(FILE *fp_in)
 				(void) fputc(ch, stdout);
 			}
 			ch = fgetc(fp_in);
+			counts.rule_2a_chsize++;
+			counts.rule_2b_chsize++;
 			counts.rule_2a_size++;
 			counts.rule_2b_size++;
 		}
@@ -367,6 +414,8 @@ rule_count(FILE *fp_in)
 				(void) fputc(ch, stdout);
 			}
 			ch = fgetc(fp_in);
+			counts.rule_2a_chsize++;
+			counts.rule_2b_chsize++;
 			counts.rule_2a_size++;
 			counts.rule_2b_size++;
 		}
@@ -394,6 +443,7 @@ rule_count(FILE *fp_in)
 						(void) fputc(next_ch, stdout);
 					}
 					(void) fgetc(fp_in);
+					counts.rule_2a_chsize++;
 					counts.rule_2a_size++;
 					ch = d[0];
 					break;
@@ -401,6 +451,9 @@ rule_count(FILE *fp_in)
 			}
 		}
 #endif
+		/* Sanity check against wc(1) -m character count. */
+		counts.rule_2a_chsize += mblength(ch) != 0;
+
 		/* Sanity check against file size and wc(1) byte count. */
 		counts.rule_2a_size++;
 
@@ -410,6 +463,7 @@ rule_count(FILE *fp_in)
 		if ((word[0] != '#' || 1 < wordi) && !isalnum(ch) && ch != '_' && ch != '#') {
 			if (find_member(cwords, word) != NULL) {
 				/* Count keyword as 1. */
+				counts.rule_2b_chsize = counts.rule_2b_chsize - wordi + 1;
 				counts.rule_2b_size = counts.rule_2b_size - wordi + 1;
 				counts.keywords++;
 				if (rule_count_debug > 1) {
@@ -457,6 +511,7 @@ rule_count(FILE *fp_in)
 			word[wordi] = '\0';
 		}
 
+		counts.rule_2b_chsize += mblength(ch) != 0;
 		counts.rule_2b_size++;
 	}
 
@@ -512,7 +567,7 @@ main(int argc, char **argv)
 				(void) fprintf(stderr, "bad -v argument: %s\n", optarg);
 				exit(4); /*ooo*/
 			}
-			out_fmt = "%lu %lu %lu\n";
+			out_fmt = "%lu %lu %lu %lu %lu\n";
 			break;
 
 		case 'V':
@@ -553,9 +608,6 @@ main(int argc, char **argv)
 	if (0 < counts.nul) {
 		(void) fprintf(stderr, "warning: %lu NUL bytes seen; careful not to violate rule 13!\n", counts.nul);
 	}
-	if (0 < counts.high_bit) {
-		(void) fprintf(stderr, "warning: %lu non-ASCII bytes; parlez vous Francais?\n", counts.high_bit);
-	}
 	if (0 < counts.bad_trigraph) {
 		(void) fprintf(stderr, "warning: %lu bad trigraphs; is that a bug or feature of your code?\n", counts.bad_trigraph);
 	}
@@ -572,7 +624,7 @@ main(int argc, char **argv)
 		(void) fprintf(stderr, "warning: count %lu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 	}
 
-	(void) printf(out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.keywords);
+	(void) printf(out_fmt, counts.rule_2b_size, counts.rule_2a_size, counts.rule_2b_chsize, counts.rule_2a_chsize, counts.keywords);
 
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
