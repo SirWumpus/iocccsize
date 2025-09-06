@@ -94,6 +94,8 @@
 
 #include "iocccsize.h"
 
+#define QUOTE(x)        	QUOTE_THIS(x)
+#define QUOTE_THIS(x)   	#x
 #define STRLEN(s)		(sizeof (s)-1)
 
 #define NO_STRING		0
@@ -102,6 +104,8 @@
 #define COMMENT_BLOCK		2
 
 int rule_count_debug;
+unsigned long rule_2a_size = RULE_2A_SIZE;
+unsigned long rule_2b_size = RULE_2B_SIZE;
 
 /*
  * C reserved words, plus a few #preprocessor tokens, that count as 1
@@ -488,11 +492,13 @@ rule_count(FILE *fp_in)
 static char *out_fmt = "%lu\n";
 
 static char usage[] =
-"usage: iocccsize [-ihV][-v level] prog.c\n"
-"       iocccsize [-ihV][-v level] < prog.c\n"
+"usage: iocccsize [-ihV][-g size][-n size][-v level] prog.c\n"
+"       iocccsize [-ihV][-g size][-n size][-v level] < prog.c\n"
 "\n"
 "-i\t\tignored for backward compatibility\n"
+"-g size\t\trule 2a gross size; default " QUOTE(RULE_2A_SIZE) "\n"
 "-h\t\tprint usage message in stderr and exit\n"
+"-n size\t\trule 2b net size; default " QUOTE(RULE_2B_SIZE) "\n"
 "-v level\tturn on some debugging to stderr\n"
 "-V\t\tprint version and exit\n"
 "\n"
@@ -521,7 +527,7 @@ main(int argc, char **argv)
 	RuleCount counts;
 	FILE *fp_in = stdin;
 
-	while ((ch = getopt(argc, argv, "6ihrv:V")) != -1) {
+	while ((ch = getopt(argc, argv, "6ihrv:Vg:n:")) != -1) {
 		switch (ch) {
 		case 'i': /* ignored for backward compatibility */
 			break;
@@ -542,6 +548,14 @@ main(int argc, char **argv)
 		case '6': /* You're a RTFS master!  Congrats. */
 			(void) fprintf(stderr, "There is NO... Rule 6!  I'm not a number!  I'm a free(void *man)!\n");
 			exit(6); /*ooo*/
+
+		case 'g': /* Rule 2a Gross Size */
+			rule_2a_size = strtoul(optarg, NULL, 10);
+			break;
+
+		case 'n': /* Rule 2b Net Size */
+			rule_2b_size = strtoul(optarg, NULL, 10);
+			break;
 
 		case 'h':
 		default:
@@ -585,10 +599,10 @@ main(int argc, char **argv)
 	if (0 < counts.word_overflow) {
 		(void) fprintf(stderr, "warning: %lu word buffer overflows; is that a bug or feature of your code?\n", counts.word_overflow);
 	}
-	if (RULE_2A_SIZE < counts.rule_2a_size) {
+	if (rule_2a_size < counts.rule_2a_size) {
 		(void) fprintf(stderr, "warning: size %lu exceeds Rule 2a %u\n", counts.rule_2a_size, RULE_2A_SIZE);
 	}
-	if (RULE_2B_SIZE < counts.rule_2b_size) {
+	if (rule_2b_size < counts.rule_2b_size) {
 		(void) fprintf(stderr, "warning: count %lu exceeds Rule 2b %u\n", counts.rule_2b_size, RULE_2B_SIZE);
 	}
 
@@ -597,7 +611,7 @@ main(int argc, char **argv)
 	/*
 	 * All Done!!! All Done!!! -- Jessica Noll, age 2
 	 */
-	if ((RULE_2A_SIZE < counts.rule_2a_size) || (RULE_2B_SIZE < counts.rule_2b_size)) {
+	if ((rule_2a_size < counts.rule_2a_size) || (rule_2b_size < counts.rule_2b_size)) {
 		exit(1); /*ooo*/
 	}
 
