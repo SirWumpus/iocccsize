@@ -1,5 +1,6 @@
 iocccsize
 =========
+Primary Repository https://codeberg.org/SirWumpus/iocccsize
 
 The original IOCCC source code rule size checking tool.
 
