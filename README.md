@@ -5,11 +5,13 @@ Primary Repository https://codeberg.org/SirWumpus/iocccsize
 The original IOCCC source code rule size checking tool.
 
 ```
-usage: iocccsize [-ihV][-v level] prog.c
-       iocccsize [-ihV][-v level] < prog.c
+usage: iocccsize [-ihV][-g size][-n size][-v level] prog.c
+       iocccsize [-ihV][-g size][-n size][-v level] < prog.c
 
 -i              ignored for backward compatibility
+-g size         rule 2a gross size; default 4993
 -h              print usage message in stderr and exit
+-n size         rule 2b net size; default 2503
 -v level        turn on some debugging to stderr
 -V              print version and exit
 
