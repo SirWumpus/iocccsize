@@ -35,10 +35,10 @@
  *	bytes.  The net size is computed as follows:
  *
  *	The size tool counts most C reserved words (keyword, secondary,
- *	and selected preprocessor keywords) as 1.  The size tool counts all
- *	other octets as 1 excluding ASCII whitespace, and excluding any
- *	';', '{' or '}' followed by ASCII whitespace, and excluding any
- *	';', '{' or '}' octet immediately before the end of file.
+ *	and selected preprocessor keywords) as 1.  The size tool counts
+ *	all other octets as 1 excluding ASCII whitespace, and excluding
+ *	any ';', '{' or '}' followed by ASCII whitespace, and excluding
+ *	any ';', '{' or '}' octet immediately before the end of file.
  */
 
 /* ISO C11 section 5.2.1 defines source character set, specifically:
